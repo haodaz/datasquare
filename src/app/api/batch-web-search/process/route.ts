@@ -113,13 +113,16 @@ export async function POST(request: Request) {
         completed_at: new Date().toISOString(),
       }).eq('id', nextTask.id);
 
-      // 更新批次完成计数
-      await supabase.rpc('increment_completed_count', { job_id: batch_id }).catch(() => {
-        // 如果 RPC 不存在，手动更新
-        supabase.from('batch_search_jobs')
-          .update({ completed_count: (nextTask.seq) }) // seq 从 1 开始
-          .eq('id', batch_id);
-      });
+      // 更新批次完成计数（直接查已完成数）
+      const { count } = await supabase
+        .from('batch_search_tasks')
+        .select('id', { count: 'exact', head: true })
+        .eq('batch_id', batch_id)
+        .in('status', ['done', 'failed']);
+
+      await supabase.from('batch_search_jobs')
+        .update({ completed_count: count || nextTask.seq })
+        .eq('id', batch_id);
 
       console.log(`[BatchSearch] 完成: task=${nextTask.id}, name="${nextTask.talent_name}", report=${aiReport.length}字`);
 
