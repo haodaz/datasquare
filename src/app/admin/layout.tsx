@@ -1,9 +1,10 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { ApiOutlined, DatabaseOutlined, LogoutOutlined, UserOutlined } from '@ant-design/icons';
+import { ApiOutlined, DatabaseOutlined, LogoutOutlined, UserOutlined, SwapOutlined, DownOutlined } from '@ant-design/icons';
 import { AuthProvider, useAuth } from '@/lib/supabase/auth-context';
+import { ModelProvider, useModel, MODEL_OPTIONS } from '@/lib/model-context';
 
 const PRIMARY = '#6055f5';
 
@@ -12,6 +13,70 @@ const NAV = [
   { key: 'talent-journal',   icon: <DatabaseOutlined />,    label: '人才日志',     path: '/admin/talent-journal' },
 ];
 
+/* ── 模型切换下拉 ── */
+function ModelSwitcher() {
+  const { currentModel, setCurrentModel, modelLabel } = useModel();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function onClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener('mousedown', onClick);
+    return () => document.removeEventListener('mousedown', onClick);
+  }, []);
+
+  return (
+    <div ref={ref} style={{ position: 'relative' }}>
+      <div
+        onClick={() => setOpen(!open)}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 6, padding: '8px 10px',
+          borderRadius: 8, cursor: 'pointer', fontSize: 12,
+          background: open ? 'rgba(96,85,245,0.06)' : 'transparent',
+          color: 'rgba(0,0,0,0.65)', transition: 'all 0.15s',
+          border: '1px solid rgba(223,227,245,0.8)',
+        }}
+      >
+        <SwapOutlined style={{ fontSize: 13, color: PRIMARY }} />
+        <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {modelLabel}
+        </span>
+        <DownOutlined style={{ fontSize: 9, color: '#aaa', transform: open ? 'rotate(180deg)' : '', transition: 'transform 0.2s' }} />
+      </div>
+
+      {open && (
+        <div style={{
+          position: 'absolute', bottom: '100%', left: 0, right: 0,
+          marginBottom: 4, background: '#fff', borderRadius: 10,
+          boxShadow: '0 4px 20px rgba(0,0,0,0.12)', border: '1px solid rgba(223,227,245,0.8)',
+          maxHeight: 280, overflowY: 'auto', zIndex: 100,
+        }}>
+          {MODEL_OPTIONS.map(m => (
+            <div key={m.id}
+              onClick={() => { setCurrentModel(m.id); setOpen(false); }}
+              style={{
+                padding: '9px 12px', fontSize: 12, cursor: 'pointer',
+                background: currentModel === m.id ? 'rgba(96,85,245,0.08)' : 'transparent',
+                color: currentModel === m.id ? PRIMARY : 'rgba(0,0,0,0.65)',
+                fontWeight: currentModel === m.id ? 600 : 400,
+                transition: 'background 0.1s',
+              }}
+              onMouseEnter={e => { if (currentModel !== m.id) e.currentTarget.style.background = '#f8f8fa'; }}
+              onMouseLeave={e => { if (currentModel !== m.id) e.currentTarget.style.background = 'transparent'; }}
+            >
+              <div>{m.label}</div>
+              <div style={{ fontSize: 10, color: '#bbb', marginTop: 1 }}>{m.id}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── 主布局 ── */
 function AdminLayoutGuard({ children }: { children: React.ReactNode }) {
   const { user, profile, loading, signOut } = useAuth();
   const router = useRouter();
@@ -26,10 +91,7 @@ function AdminLayoutGuard({ children }: { children: React.ReactNode }) {
   }
 
   if (!user) {
-    // 未登录，跳转到登录页
-    if (typeof window !== 'undefined') {
-      router.replace('/login');
-    }
+    if (typeof window !== 'undefined') router.replace('/login');
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#f5f6fa' }}>
         <div style={{ fontSize: 14, color: '#999' }}>正在跳转到登录页…</div>
@@ -71,24 +133,36 @@ function AdminLayoutGuard({ children }: { children: React.ReactNode }) {
           ))}
         </div>
 
-        {/* 底部用户信息 */}
-        <div style={{ padding: '12px 16px', borderTop: '1px solid rgba(223,227,245,0.6)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-            <UserOutlined style={{ fontSize: 14, color: PRIMARY }} />
-            <span style={{ fontSize: 12, color: 'rgba(0,0,0,0.65)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
-              {profile?.display_name || user.email?.split('@')[0] || '用户'}
-            </span>
-          </div>
-          <div onClick={() => signOut().then(() => router.replace('/login'))}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 8,
-              padding: '6px 0', cursor: 'pointer', fontSize: 12, color: '#999',
-              transition: 'color 0.15s',
-            }}
-            onMouseEnter={e => (e.currentTarget.style.color = '#dc2626')}
-            onMouseLeave={e => (e.currentTarget.style.color = '#999')}>
-            <LogoutOutlined style={{ fontSize: 13 }} />
-            退出登录
+        {/* 底部：模型切换 + 用户信息 */}
+        <div style={{ padding: '12px 10px', borderTop: '1px solid rgba(223,227,245,0.6)', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {/* 模型切换 */}
+          <ModelSwitcher />
+
+          {/* 用户信息 */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 2px' }}>
+            <div style={{
+              width: 28, height: 28, borderRadius: '50%', background: 'rgba(96,85,245,0.1)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+            }}>
+              <UserOutlined style={{ fontSize: 13, color: PRIMARY }} />
+            </div>
+            <div style={{ flex: 1, overflow: 'hidden' }}>
+              <div style={{ fontSize: 12, fontWeight: 500, color: 'rgba(0,0,0,0.75)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {profile?.display_name || user.email?.split('@')[0] || '用户'}
+              </div>
+              <div style={{ fontSize: 10, color: '#bbb', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {user.email}
+              </div>
+            </div>
+            <div
+              onClick={() => signOut().then(() => router.replace('/login'))}
+              title="退出登录"
+              style={{ cursor: 'pointer', color: '#ccc', padding: 4, borderRadius: 4, transition: 'color 0.15s' }}
+              onMouseEnter={e => (e.currentTarget.style.color = '#dc2626')}
+              onMouseLeave={e => (e.currentTarget.style.color = '#ccc')}
+            >
+              <LogoutOutlined style={{ fontSize: 14 }} />
+            </div>
           </div>
         </div>
       </div>
@@ -104,7 +178,9 @@ function AdminLayoutGuard({ children }: { children: React.ReactNode }) {
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
     <AuthProvider>
-      <AdminLayoutGuard>{children}</AdminLayoutGuard>
+      <ModelProvider>
+        <AdminLayoutGuard>{children}</AdminLayoutGuard>
+      </ModelProvider>
     </AuthProvider>
   );
 }
