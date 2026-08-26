@@ -573,7 +573,7 @@ function runPingfangDisambiguation(candidates: any[], opts: DisambiguationOption
 
 // ------------------------------------------------
 
-export async function runTalentDeepSearchStream(query: string, institution: string, en_name?: string, cn_name?: string) {
+export async function runTalentWebSearchStream(query: string, institution: string, en_name?: string, cn_name?: string) {
     if (!query) {
       throw new Error('Missing query');
     }
