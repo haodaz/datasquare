@@ -178,6 +178,7 @@ ${JSON.stringify(gatheredData, null, 2)}
           model: process.env.DEEPSEEK_MODEL || 'deepseek-v3.2-exp',
           messages: [{ role: 'user', content: assemblePrompt }],
           stream: true,
+            max_tokens: 8192,
         });
 
         for await (const chunk of aiStream) {

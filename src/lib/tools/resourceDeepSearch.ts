@@ -215,6 +215,7 @@ export async function runResourceDeepSearchStream(
             model: process.env.DEEPSEEK_MODEL || 'deepseek-v3.2-exp',
             messages: [{ role: 'user', content: `用户在科研物资库中搜索"${query}"${resourceType ? `（类型：${resourceType}）` : ''}${brandFilter ? `（品牌：${brandFilter}）` : ''}，但未找到匹配结果。${didRewrite ? `系统尝试了智能扩展搜索（关键词：${rewriteKeywords.join('、')}），仍未命中。` : ''}请用自然对话的语气告知用户结果，并给出建议（如换个关键词、缩小范围等）。简短即可，2-3 句话。` }],
             stream: true,
+            max_tokens: 8192,
           });
           for await (const chunk of aiStream) {
             const text = chunk.choices[0]?.delta?.content || '';
@@ -404,6 +405,7 @@ ${uniqueSuppliers.length > 0 ? `【供应商深度数据 JSON（⚠️ 必须在
           model: process.env.DEEPSEEK_MODEL || 'deepseek-v3.2-exp',
           messages: [{ role: 'user', content: assemblePrompt }],
           stream: true,
+            max_tokens: 8192,
         });
 
         for await (const chunk of aiStream) {

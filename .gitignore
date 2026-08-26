@@ -52,3 +52,4 @@ src/lib/mcp/bin/
 
 # local data
 /data/*.log
+vercel_env_complete.md
