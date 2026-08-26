@@ -8,6 +8,7 @@ import { Search, Database, Globe, User, BookOpen, Layers } from 'lucide-react';
 const MENU_ITEMS = [
   { group: '全景检索', items: [
     { title: 'Talent Deep Search (4+1)', href: '/admin/tools-tester/talent-deep-search', icon: <Layers size={16} /> },
+    { title: '🌐 人才网络搜索 (Web)', href: '/admin/tools-tester/talent-web-search', icon: <Globe size={16} /> },
     { title: 'Find Talents (条件找人)', href: '/admin/tools-tester/talent-topic-search', icon: <Layers size={16} /> },
     { title: 'Policy Search (政策检索)', href: '/admin/tools-tester/policy-search', icon: <Globe size={16} /> },
     { title: 'Talent Policy Match (人才政策匹配)', href: '/admin/tools-tester/talent-policy-match', icon: <User size={16} /> },

@@ -7,7 +7,21 @@ import { MarkdownMsg } from '@/components/chat/MarkdownMsg';
 
 const { Title } = Typography;
 
-export function TalentDeepSearchTest() {
+interface TalentSearchTestProps {
+  apiEndpoint?: string;
+  title?: string;
+  buttonText?: string;
+  buttonColor?: string;
+  borderColor?: string;
+}
+
+export function TalentDeepSearchTest({
+  apiEndpoint = '/api/talent-deep-search',
+  title: cardTitle = '[Admin] Talent Deep Search 测试台 (4+1 流式检索与合并)',
+  buttonText = '开始深度检索',
+  buttonColor = '#667eea',
+  borderColor = '#667eea',
+}: TalentSearchTestProps = {}) {
   const [query, setQuery] = useState('');
   const [institution, setInstitution] = useState('');
   const [loading, setLoading] = useState(false);
@@ -21,7 +35,7 @@ export function TalentDeepSearchTest() {
     setReport('');
 
     try {
-      const res = await fetch('/api/talent-deep-search', {
+      const res = await fetch(apiEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query, institution }),
@@ -66,7 +80,7 @@ export function TalentDeepSearchTest() {
   };
 
   return (
-    <Card title="[Admin] Talent Deep Search 测试台 (4+1 流式检索与合并)" style={{ marginBottom: 24, borderColor: '#667eea' }}>
+    <Card title={cardTitle} style={{ marginBottom: 24, borderColor }}>
       <Space style={{ marginBottom: 24 }} wrap>
         <Input 
           placeholder="输入姓名 / 英文名 (如: 李开复)" 
@@ -82,8 +96,8 @@ export function TalentDeepSearchTest() {
           style={{ width: 200 }}
           onPressEnter={handleSearch}
         />
-        <Button type="primary" icon={<SearchOutlined />} onClick={handleSearch} loading={loading} style={{ background: '#667eea' }}>
-          开始深度检索
+        <Button type="primary" icon={<SearchOutlined />} onClick={handleSearch} loading={loading} style={{ background: buttonColor }}>
+          {buttonText}
         </Button>
       </Space>
 
