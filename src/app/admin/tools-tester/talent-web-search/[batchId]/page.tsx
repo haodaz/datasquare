@@ -71,6 +71,7 @@ export default function BatchDetailPage() {
   const statusTag = (status: string) => {
     switch (status) {
       case 'done': return <Tag color="green">✅ 完成</Tag>;
+      case 'partial': return <Tag color="orange">⚠️ 部分失败</Tag>;
       case 'running': return <Tag color="blue">🔄 进行中</Tag>;
       case 'pending': return <Tag color="default">⏳ 等待</Tag>;
       case 'failed': return <Tag color="red">❌ 失败</Tag>;

@@ -29,13 +29,29 @@ export async function POST(request: Request) {
       .single();
 
     if (findErr || !nextTask) {
-      // 没有更多 pending 任务 → 标记批次完成
+      // 没有更多 pending 任务 → 判断最终状态
+      const { count: failedCount } = await supabase
+        .from('batch_search_tasks')
+        .select('id', { count: 'exact', head: true })
+        .eq('batch_id', batch_id)
+        .eq('status', 'failed');
+
+      const { count: totalCount } = await supabase
+        .from('batch_search_tasks')
+        .select('id', { count: 'exact', head: true })
+        .eq('batch_id', batch_id);
+
+      let finalStatus = 'done';
+      if (failedCount && failedCount > 0) {
+        finalStatus = (failedCount === totalCount) ? 'failed' : 'partial';
+      }
+
       await supabase.from('batch_search_jobs').update({
-        status: 'done',
+        status: finalStatus,
         completed_at: new Date().toISOString(),
       }).eq('id', batch_id);
-      console.log(`[BatchSearch] Batch ${batch_id} 全部完成`);
-      return NextResponse.json({ ok: true, done: true });
+      console.log(`[BatchSearch] Batch ${batch_id} 完成, status=${finalStatus}, failed=${failedCount}/${totalCount}`);
+      return NextResponse.json({ ok: true, done: true, status: finalStatus });
     }
 
     // 2. 标记任务为 running

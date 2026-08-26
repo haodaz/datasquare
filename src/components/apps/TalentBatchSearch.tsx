@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Card, Input, Button, Table, Tag, Progress, Upload, Space, Typography, message, Popconfirm } from 'antd';
-import { PlusOutlined, UploadOutlined, PlayCircleOutlined, DeleteOutlined, EyeOutlined, ReloadOutlined } from '@ant-design/icons';
+import { PlusOutlined, UploadOutlined, PlayCircleOutlined, DeleteOutlined, EyeOutlined, ReloadOutlined, RedoOutlined } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
 
 const { Title, Text } = Typography;
@@ -137,13 +137,32 @@ export function TalentBatchSearch() {
     setSubmitting(false);
   };
 
+  // ── 重试失败任务 ──
+  const handleRetry = async (batchId: number) => {
+    try {
+      const res = await fetch('/api/batch-web-search', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ batch_id: batchId }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        message.success(`批次 #${batchId} 失败任务已重新开始`);
+        fetchJobs();
+      } else {
+        message.error(data.error || '重试失败');
+      }
+    } catch { message.error('请求失败'); }
+  };
+
   // ── 状态标签 ──
   const statusTag = (status: string) => {
     switch (status) {
       case 'done': return <Tag color="green">✅ 完成</Tag>;
+      case 'partial': return <Tag color="orange">⚠️ 部分失败</Tag>;
       case 'running': return <Tag color="blue">🔄 进行中</Tag>;
       case 'pending': return <Tag color="default">⏳ 等待</Tag>;
-      case 'failed': return <Tag color="red">❌ 失败</Tag>;
+      case 'failed': return <Tag color="red">❌ 全部失败</Tag>;
       default: return <Tag>{status}</Tag>;
     }
   };
@@ -258,15 +277,27 @@ export function TalentBatchSearch() {
             {
               title: '操作',
               key: 'actions',
-              width: 80,
+              width: 160,
               render: (_: any, job: BatchJob) => (
-                <Button
-                  type="link"
-                  icon={<EyeOutlined />}
-                  onClick={() => router.push(`/admin/tools-tester/talent-web-search/${job.id}`)}
-                >
-                  详情
-                </Button>
+                <Space size="small">
+                  <Button
+                    type="link"
+                    icon={<EyeOutlined />}
+                    onClick={() => router.push(`/admin/tools-tester/talent-web-search/${job.id}`)}
+                  >
+                    详情
+                  </Button>
+                  {(job.status === 'failed' || job.status === 'partial') && (
+                    <Button
+                      type="link"
+                      icon={<RedoOutlined />}
+                      onClick={() => handleRetry(job.id)}
+                      style={{ color: '#fa8c16' }}
+                    >
+                      重试
+                    </Button>
+                  )}
+                </Space>
               ),
             },
           ]}

@@ -128,3 +128,61 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
+/**
+ * PUT — 重试失败任务
+ * Body: { batch_id: number, task_ids?: number[] }
+ * task_ids 为空时重试该批次所有失败任务
+ */
+export async function PUT(request: Request) {
+  try {
+    const { batch_id, task_ids } = await request.json();
+    if (!batch_id) {
+      return NextResponse.json({ error: 'Missing batch_id' }, { status: 400 });
+    }
+
+    // 重置失败任务为 pending
+    let query = supabase
+      .from('batch_search_tasks')
+      .update({
+        status: 'pending',
+        logs: '[]',
+        ai_report: '',
+        error_message: null,
+        started_at: null,
+        completed_at: null,
+      })
+      .eq('batch_id', batch_id)
+      .eq('status', 'failed');
+
+    if (task_ids && task_ids.length > 0) {
+      query = query.in('id', task_ids);
+    }
+
+    const { error: updateErr, count } = await query.select('id');
+
+    if (updateErr) {
+      return NextResponse.json({ error: '重置失败' }, { status: 500 });
+    }
+
+    // 更新批次状态为 running
+    await supabase.from('batch_search_jobs').update({
+      status: 'running',
+      completed_at: null,
+    }).eq('id', batch_id);
+
+    // 触发处理
+    const processUrl = new URL('/api/batch-web-search/process', request.url);
+    fetch(processUrl.toString(), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ batch_id }),
+    }).catch(e => console.error('[BatchSearch] 触发重试失败:', e));
+
+    console.log(`[BatchSearch] 重试批次 ${batch_id}`);
+    return NextResponse.json({ ok: true, batch_id });
+
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
