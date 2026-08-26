@@ -194,12 +194,12 @@ export class McpClient {
       throw new Error(`[MCP HTTP] Unknown tool: ${toolName}. Add it to GQL_QUERIES.`);
     }
 
-    const url = `${endpoint}/graphql`;
+    const url = `${endpoint}/gql/endpoint`;
     const res = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...(bearerToken ? { Authorization: `Bearer ${bearerToken}` } : {}),
+        ...(bearerToken ? { 'X-Token': bearerToken } : {}),
       },
       body: JSON.stringify({ query: gql.query, variables }),
     });
@@ -243,7 +243,7 @@ export class McpClient {
       method: rest.method,
       headers: {
         'Content-Type': 'application/json',
-        ...(bearerToken ? { Authorization: `Bearer ${bearerToken}` } : {}),
+        ...(bearerToken ? { 'X-Token': bearerToken } : {}),
       },
       body: rest.method !== 'GET' ? JSON.stringify(body) : undefined,
     });
