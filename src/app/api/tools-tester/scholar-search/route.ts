@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import OpenAI from "openai";
-import { talentJournal } from '@/lib/mcp/talent-journal';
+import { talentJournal } from '@/lib/supabase/talent-journal';
 import { getToken } from '@/lib/auth';
 
 function getOpenAIClient() {

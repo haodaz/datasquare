@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { runTalentDeepSearchStream } from '@/lib/tools/talentDeepSearch';
-import { talentJournal } from '@/lib/mcp/talent-journal';
+import { talentJournal } from '@/lib/supabase/talent-journal';
 import { getToken } from '@/lib/auth';
 
 export const runtime = 'nodejs';

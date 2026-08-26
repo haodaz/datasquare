@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { TalentAuditService } from '@/lib/mcp/talent';
 import { executeToolCall } from '@/lib/tools';
-import { talentJournal } from '@/lib/mcp/talent-journal';
+import { talentJournal } from '@/lib/supabase/talent-journal';
 
 const talentService = new TalentAuditService();
 

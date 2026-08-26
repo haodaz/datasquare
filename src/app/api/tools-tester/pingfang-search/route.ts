@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { talentAuditService } from '@/lib/mcp/talent';
-import { talentJournal } from '@/lib/mcp/talent-journal';
+import { talentJournal } from '@/lib/supabase/talent-journal';
 import { getToken } from '@/lib/auth';
 import OpenAI from "openai";
 import {

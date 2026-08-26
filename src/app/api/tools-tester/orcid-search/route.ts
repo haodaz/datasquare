@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getOrcidToken, orcidSearch, orcidGetEmployments, orcidGetEducations, orcidGetWorks, orcidGetProfileName, OrcidAffiliation, OrcidWork, OrcidProfileName } from '@/lib/tools/orcid_funcs';
-import { talentJournal } from '@/lib/mcp/talent-journal';
+import { talentJournal } from '@/lib/supabase/talent-journal';
 import { getToken } from '@/lib/auth';
 import OpenAI from "openai";
 

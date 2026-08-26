@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getToken, checkIsAdmin } from '@/lib/auth';
-import { talentJournal } from '@/lib/mcp/talent-journal';
+import { talentJournal } from '@/lib/supabase/talent-journal';
 
 export async function GET(req: Request) {
   const token = await getToken(req);
