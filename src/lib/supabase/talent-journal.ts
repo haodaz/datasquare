@@ -206,6 +206,8 @@ class TalentJournalManagerSupabase {
 
       // 更新 source data
       await this.upsertSourceData(existingEntry.id, sourceContributions);
+      // 自动写入 talent_profiles（从提取的字段）
+      await this.autoUpsertProfile(existingEntry.id, extracted);
       // 更新 structured_data
       if (sourceRaw) await this.upsertStructuredData(existingEntry.id, sourceRaw);
 
@@ -233,6 +235,8 @@ class TalentJournalManagerSupabase {
 
       // 保存 source data
       await this.upsertSourceData(newEntry.id, sourceContributions);
+      // 自动写入 talent_profiles（从提取的字段）
+      await this.autoUpsertProfile(newEntry.id, extracted);
       // 保存 structured_data
       if (sourceRaw) await this.upsertStructuredData(newEntry.id, sourceRaw);
     }
@@ -255,6 +259,37 @@ class TalentJournalManagerSupabase {
         }, { onConflict: 'talent_entry_id,source_key' });
 
       if (error) console.error(`[TalentJournal/SB] upsert source ${sourceKey} error:`, error.message);
+    }
+  }
+
+  /** 自动从 extractStructuredFields 的结果写入 talent_profiles */
+  private async autoUpsertProfile(entryId: number, extracted: Partial<TalentJournalEntry>) {
+    const profileRow: Record<string, any> = {
+      talent_entry_id: entryId,
+      updated_at: new Date().toISOString(),
+    };
+
+    if (extracted.talent_name_en) profileRow.name_en = extracted.talent_name_en;
+    if (extracted.h_index) profileRow.h_index = extracted.h_index;
+    if (extracted.cited_by_count) profileRow.cited_by_count = extracted.cited_by_count;
+    if (extracted.works_count) profileRow.works_count = extracted.works_count;
+    if (extracted.workplace) profileRow.current_employer = extracted.workplace;
+    if (extracted.bio_snippet) profileRow.bio_snippet = extracted.bio_snippet;
+    if (extracted.pingfang_id) profileRow.pingfang_id = extracted.pingfang_id;
+    if (extracted.research_fields?.length) profileRow.research_fields = extracted.research_fields;
+    if (extracted.orcid_data?.orcid_id) profileRow.orcid_id = extracted.orcid_data.orcid_id;
+
+    // 只有有实际数据时才写入
+    if (Object.keys(profileRow).length <= 2) return; // 只有 talent_entry_id 和 updated_at
+
+    const { error } = await supabase
+      .from('talent_profiles')
+      .upsert(profileRow, { onConflict: 'talent_entry_id' });
+
+    if (error) {
+      console.error('[TalentJournal/SB] autoUpsertProfile error:', error.message);
+    } else {
+      console.log(`[TalentJournal/SB] autoUpsertProfile OK for entry ${entryId}`);
     }
   }
 

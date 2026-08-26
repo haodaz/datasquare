@@ -23,6 +23,7 @@ export async function POST(request: Request) {
     const encoder = new TextEncoder();
     let buffer = '';
     let talentRawData: Record<string, any> | null = null;
+    let aiReportChunks: string[] = [];  // ← 收集 AI 报告 chunks
 
     const transformStream = new TransformStream({
       transform(chunk, controller) {
@@ -37,11 +38,13 @@ export async function POST(request: Request) {
                 talentRawData = data.data;
                 logger.setResult(data.data);
               }
+              if (data.type === 'ai_chunk') {
+                // 收集 AI 输出用于保存
+                const text = typeof data.data === 'string' ? data.data : '';
+                if (text) aiReportChunks.push(text);
+              }
               if (data.type === 'log') {
                 logger.addLog(data.data?.step || '', data.data?.message || '');
-              }
-              if (data.type === 'report') {
-                logger.setAiRenderedResult(typeof data.data === 'string' ? data.data : JSON.stringify(data.data));
               }
             } catch (e) { /* ignore incomplete json */ }
           }
@@ -58,17 +61,30 @@ export async function POST(request: Request) {
                 talentRawData = data.data;
                 logger.setResult(data.data);
               }
+              if (data.type === 'ai_chunk') {
+                const text = typeof data.data === 'string' ? data.data : '';
+                if (text) aiReportChunks.push(text);
+              }
             } catch (e) { /* ignore */ }
           }
           controller.enqueue(encoder.encode(line + '\n\n'));
         }
+
+        // 拼接完整 AI 报告
+        const fullAiReport = aiReportChunks.join('');
+        
+        // 保存完整 AI 报告到 logger
+        if (fullAiReport) {
+          logger.setAiRenderedResult(fullAiReport);
+        }
+
         // fire-and-forget 保存到人才日志
         if (talentRawData?.gatheredData) {
           talentJournal.saveTalentData(
             talentRawData.talentName || query,
             talentRawData.institution || institution || '',
             talentRawData.gatheredData,
-            '',
+            fullAiReport,  // ← 传入完整 AI 报告
             token,
             'deep_search',
           ).catch((e: any) => console.error('[DeepSearch] talentJournal save failed:', e));
