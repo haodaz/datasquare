@@ -938,6 +938,16 @@ export async function runTalentWebSearchStream(query: string, institution: strin
           }
 
 
+          // [网络搜索模式] 根据 Scholar + ORCID 结果推导置信度
+          // 避免已经找到正确人时仍触发纠错
+          if (allGatheredData['scholar'] && allGatheredData['orcid']) {
+            pfConfidence = 'high';
+            sendEvent('log', { step: 'confidence', message: `✅ Scholar + ORCID 双源命中，置信度: 高` });
+          } else if (allGatheredData['scholar'] || allGatheredData['orcid']) {
+            pfConfidence = 'low';
+            sendEvent('log', { step: 'confidence', message: `🟡 Scholar/ORCID 单源命中，置信度: 中` });
+          }
+
           // Stage 3: Wikipedia / 百度百科
           // ── 【修复 1】osintQuery 加 pfConfidence ──
           let osintQuery: string;
@@ -1178,30 +1188,9 @@ ${correctionText.substring(0, 2000)}
 
                   sendEvent('log', { step: 'name_correction', message: `🔍 [纠错重跑] 正在用纠正后的名字重跑核心阶段...` });
 
-                  // ── Stage 1 平方库（完整消歧 + 拼音兜底）──
+                  // ── [网络搜索模式] 跳过 Stage 1 平方库重跑 ──
                   let corrTopPf: any = null;
-                  try {
-                    let corrCandidates = await talentService.searchTalents(correctedClean, 5);
-                    // 拼音兜底（如果纠正后是中文且直接搜不到）
-                    if (corrCandidates.length === 0 && /^[\u4e00-\u9fa5]+$/.test(correctedClean)) {
-                      const pyVars = generatePinyinVariants(correctedClean);
-                      for (const pyV of pyVars) {
-                        corrCandidates = await talentService.searchTalents(pyV, 5);
-                        if (corrCandidates.length > 0) {
-                          sendEvent('log', { step: 'name_correction', message: `   平方库拼音兜底命中: ${pyV}` });
-                          break;
-                        }
-                      }
-                    }
-                    if (corrCandidates.length > 0) {
-                      // 完整消歧
-                      const corrDisCtx = { name: correctedClean, institution, topPingfangRecord: null, pfConfidence: 'none' as const };
-                      const corrDisResult = runPingfangDisambiguation(corrCandidates, corrDisCtx);
-                      corrTopPf = corrDisResult.top;
-                      allGatheredData['pingfang'] = corrTopPf; // 【修复】强制覆盖
-                      sendEvent('log', { step: 'name_correction', message: `   Stage 1 ✅ 平方库消歧完成（覆盖旧数据）` });
-                    }
-                  } catch { /* skip */ }
+                  sendEvent('log', { step: 'name_correction', message: `   Stage 1 ⏭️ 跳过平方库（网络搜索模式）` });
 
                   // ── Stage 2 Scholar（Google Scholar 完整消歧）──
                   let corrScholarHit = false;
