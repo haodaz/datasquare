@@ -1178,7 +1178,7 @@ export async function runTalentDeepSearchStream(query: string, institution: stri
             if (geminiKey) {
               sendEvent('log', { step: 'internet', message: `🚀 启动 Gemini Search Grounding (Google 搜索直连)...` });
               const genAI = new GoogleGenerativeAI(geminiKey);
-              const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash', tools: [{ googleSearch: {} }] as any });
+              const model = genAI.getGenerativeModel({ model: 'gemini-3.5-flash', tools: [{ googleSearch: {} }] as any });
               const query = `Please use Google Search to find detailed biography and academic achievements for "${searchQueries.join(' OR ')}" ${institution ? 'at ' + institution : ''}. Provide a detailed summary in Chinese.`;
               
               const result = await model.generateContent(query);

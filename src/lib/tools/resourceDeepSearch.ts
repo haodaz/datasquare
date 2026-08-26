@@ -299,7 +299,7 @@ export async function runResourceDeepSearchStream(
               if (geminiKey) {
                 sendEvent('log', { step: 'supplier', message: `  🚀 ${supplierName}: 启动 Gemini Search Grounding...` });
                 const genAI = new GoogleGenerativeAI(geminiKey);
-                const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash', tools: [{ googleSearch: {} }] as any });
+                const model = genAI.getGenerativeModel({ model: 'gemini-3.5-flash', tools: [{ googleSearch: {} }] as any });
                 const prompt = `请用 Google 搜索查找中国公司"${supplierName}"的信息。用中文回答，简要提供：主营业务、注册地、联系方式（如有）、在科研设备/耗材领域的口碑或特色。控制在 150 字以内。`;
                 const result = await model.generateContent(prompt);
                 const text = result.response.text();
