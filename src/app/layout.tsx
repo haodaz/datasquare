@@ -7,8 +7,8 @@ const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "DataSquare · 人才数据检索平台",
-  description: "DataSquare · 人才数据检索平台",
+  title: "看人才DataSquare",
+  description: "看人才DataSquare · 人才数据检索平台",
 };
 
 export const viewport = {
