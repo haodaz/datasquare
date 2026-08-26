@@ -126,6 +126,10 @@ export default function BatchDetailPage() {
           size="small"
           pagination={false}
           loading={loading}
+          onRow={(record) => ({
+            onClick: () => setExpandedTask(expandedTask === record.id ? null : record.id),
+            style: { cursor: 'pointer' },
+          })}
           expandable={{
             expandedRowKeys: expandedTask !== null ? [expandedTask] : [],
             onExpand: (expanded, record) => setExpandedTask(expanded ? record.id : null),
