@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { ToolUsageLogger } from '@/lib/supabase/tool-usage-logger';
 import OpenAI from "openai";
 import { talentJournal } from '@/lib/supabase/talent-journal';
 import { getToken } from '@/lib/auth';
@@ -19,11 +20,13 @@ function makeStream(handler: (ctrl: ReadableStreamDefaultController) => Promise<
   return new ReadableStream({ start: handler });
 }
 
-function sendLog(ctrl: ReadableStreamDefaultController, step: string, msg: string) {
+function sendLog(ctrl: ReadableStreamDefaultController, step: string, msg: string, logger?: any) {
+  if (logger) logger.addLog(step, msg);
   ctrl.enqueue(enc.encode('data: ' + JSON.stringify({ type: 'log', data: { step, message: msg } }) + '\n\n'));
 }
 
-function sendResult(ctrl: ReadableStreamDefaultController, data: unknown) {
+function sendResult(ctrl: ReadableStreamDefaultController, data: unknown, logger?: any) {
+  if (logger) { logger.setResult(data); logger.setAiRenderedResult(typeof data === 'string' ? data : JSON.stringify(data)); }
   ctrl.enqueue(enc.encode('data: ' + JSON.stringify({ type: 'result', data }) + '\n\n'));
 }
 
@@ -43,6 +46,7 @@ export async function POST(req: Request) {
     }
 
     const stream = makeStream(async (ctrl) => {
+        const logger = new ToolUsageLogger('scholar-search', queryName || name_cn || '');
       try {
         const factItems: any[] = [];
         
@@ -251,7 +255,7 @@ export async function POST(req: Request) {
       } catch (err: any) {
         sendLog(ctrl, 'error', `[Error] ${err.message}`);
       } finally {
-        ctrl.close();
+        logger.save().catch(() => {}); ctrl.close();
       }
     });
 

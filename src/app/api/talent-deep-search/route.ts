@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { runTalentDeepSearchStream } from '@/lib/tools/talentDeepSearch';
 import { talentJournal } from '@/lib/supabase/talent-journal';
+import { ToolUsageLogger } from '@/lib/supabase/tool-usage-logger';
 import { getToken } from '@/lib/auth';
 
 export const runtime = 'nodejs';
@@ -16,6 +17,7 @@ export async function POST(request: Request) {
 
     const stream = await runTalentDeepSearchStream(query, institution, en_name, cn_name);
     const token = await getToken(request);
+    const logger = new ToolUsageLogger('talent-deep-search', query);
 
     const decoder = new TextDecoder();
     const encoder = new TextEncoder();
@@ -33,6 +35,13 @@ export async function POST(request: Request) {
               const data = JSON.parse(line.substring(6));
               if (data.type === 'raw_data') {
                 talentRawData = data.data;
+                logger.setResult(data.data);
+              }
+              if (data.type === 'log') {
+                logger.addLog(data.data?.step || '', data.data?.message || '');
+              }
+              if (data.type === 'report') {
+                logger.setAiRenderedResult(typeof data.data === 'string' ? data.data : JSON.stringify(data.data));
               }
             } catch (e) { /* ignore incomplete json */ }
           }
@@ -47,6 +56,7 @@ export async function POST(request: Request) {
               const data = JSON.parse(line.substring(6));
               if (data.type === 'raw_data') {
                 talentRawData = data.data;
+                logger.setResult(data.data);
               }
             } catch (e) { /* ignore */ }
           }
@@ -58,11 +68,13 @@ export async function POST(request: Request) {
             talentRawData.talentName || query,
             talentRawData.institution || institution || '',
             talentRawData.gatheredData,
-            '', // 直接 API 调用没有组装报告
+            '',
             token,
             'deep_search',
           ).catch((e: any) => console.error('[DeepSearch] talentJournal save failed:', e));
         }
+        // 保存工具使用日志
+        logger.save().catch(() => {});
       }
     });
 

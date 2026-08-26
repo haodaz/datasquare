@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { ToolUsageLogger } from '@/lib/supabase/tool-usage-logger';
 import { getOrcidToken, orcidSearch, orcidGetEmployments, orcidGetEducations, orcidGetWorks, orcidGetProfileName, OrcidAffiliation, OrcidWork, OrcidProfileName } from '@/lib/tools/orcid_funcs';
 import { talentJournal } from '@/lib/supabase/talent-journal';
 import { getToken } from '@/lib/auth';
@@ -20,11 +21,13 @@ function makeStream(handler: (ctrl: ReadableStreamDefaultController) => Promise<
   return new ReadableStream({ start: handler });
 }
 
-function sendLog(ctrl: ReadableStreamDefaultController, step: string, msg: string) {
+function sendLog(ctrl: ReadableStreamDefaultController, step: string, msg: string, logger?: any) {
+  if (logger) logger.addLog(step, msg);
   ctrl.enqueue(enc.encode('data: ' + JSON.stringify({ type: 'log', data: { step, message: msg } }) + '\n\n'));
 }
 
-function sendResult(ctrl: ReadableStreamDefaultController, data: unknown) {
+function sendResult(ctrl: ReadableStreamDefaultController, data: unknown, logger?: any) {
+  if (logger) { logger.setResult(data); logger.setAiRenderedResult(typeof data === 'string' ? data : JSON.stringify(data)); }
   ctrl.enqueue(enc.encode('data: ' + JSON.stringify({ type: 'result', data }) + '\n\n'));
 }
 
@@ -39,6 +42,7 @@ export async function POST(req: Request) {
     }
 
     const stream = makeStream(async (ctrl) => {
+        const logger = new ToolUsageLogger('orcid-search', queryName || name_cn || '');
       try {
         const factItems: any[] = [];
         const queryName = (name_en || name_cn || '').trim();
@@ -47,7 +51,7 @@ export async function POST(req: Request) {
         const orcidToken = await getOrcidToken();
         if (!orcidToken) {
           sendLog(ctrl, 'error', `ORCID 未配置`);
-          ctrl.close();
+          logger.save().catch(() => {}); ctrl.close();
           return;
         }
 
@@ -347,7 +351,7 @@ export async function POST(req: Request) {
       } catch (err: any) {
         sendLog(ctrl, 'error', `[Error] ${err.message}`);
       } finally {
-        ctrl.close();
+        logger.save().catch(() => {}); ctrl.close();
       }
     });
 
