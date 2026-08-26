@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Card, Input, Button, Table, Tag, Progress, Upload, Space, Typography, message, Popconfirm } from 'antd';
-import { PlusOutlined, UploadOutlined, PlayCircleOutlined, DeleteOutlined, EyeOutlined, ReloadOutlined, RedoOutlined } from '@ant-design/icons';
+import { PlusOutlined, UploadOutlined, PlayCircleOutlined, DeleteOutlined, EyeOutlined, ReloadOutlined, RedoOutlined, StopOutlined, CaretRightOutlined } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
 
 const { Title, Text } = Typography;
@@ -137,20 +137,21 @@ export function TalentBatchSearch() {
     setSubmitting(false);
   };
 
-  // ── 重试失败任务 ──
-  const handleRetry = async (batchId: number) => {
+  // ── 批次操作：terminate / resume / retry ──
+  const handleBatchAction = async (batchId: number, action: 'terminate' | 'resume' | 'retry') => {
+    const labels = { terminate: '终止', resume: '恢复', retry: '重试' };
     try {
       const res = await fetch('/api/batch-web-search', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ batch_id: batchId }),
+        body: JSON.stringify({ batch_id: batchId, action }),
       });
       const data = await res.json();
       if (data.ok) {
-        message.success(`批次 #${batchId} 失败任务已重新开始`);
+        message.success(`批次 #${batchId} 已${labels[action]}`);
         fetchJobs();
       } else {
-        message.error(data.error || '重试失败');
+        message.error(data.error || `${labels[action]}失败`);
       }
     } catch { message.error('请求失败'); }
   };
@@ -277,7 +278,7 @@ export function TalentBatchSearch() {
             {
               title: '操作',
               key: 'actions',
-              width: 160,
+              width: 240,
               render: (_: any, job: BatchJob) => (
                 <Space size="small">
                   <Button
@@ -287,11 +288,31 @@ export function TalentBatchSearch() {
                   >
                     详情
                   </Button>
+                  {(job.status === 'running' || job.status === 'pending') && (
+                    <Button
+                      type="link"
+                      icon={<StopOutlined />}
+                      onClick={() => handleBatchAction(job.id, 'terminate')}
+                      style={{ color: '#f5222d' }}
+                    >
+                      终止
+                    </Button>
+                  )}
+                  {(job.status === 'failed' || job.status === 'partial') && (
+                    <Button
+                      type="link"
+                      icon={<CaretRightOutlined />}
+                      onClick={() => handleBatchAction(job.id, 'resume')}
+                      style={{ color: '#52c41a' }}
+                    >
+                      恢复
+                    </Button>
+                  )}
                   {(job.status === 'failed' || job.status === 'partial') && (
                     <Button
                       type="link"
                       icon={<RedoOutlined />}
-                      onClick={() => handleRetry(job.id)}
+                      onClick={() => handleBatchAction(job.id, 'retry')}
                       style={{ color: '#fa8c16' }}
                     >
                       重试

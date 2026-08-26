@@ -130,19 +130,69 @@ export async function GET(request: Request) {
 }
 
 /**
- * PUT — 重试失败任务
- * Body: { batch_id: number, task_ids?: number[] }
- * task_ids 为空时重试该批次所有失败任务
+ * PUT — 批次操作
+ * Body: { batch_id, action: 'terminate' | 'resume' | 'retry' }
+ * - terminate: 终止卡住的批次（running → failed）
+ * - resume: 从未成功的开始恢复（running + failed → pending，重新触发）
+ * - retry: 仅重跑 failed 任务（向后兼容）
  */
 export async function PUT(request: Request) {
   try {
-    const { batch_id, task_ids } = await request.json();
+    const { batch_id, action = 'retry' } = await request.json();
     if (!batch_id) {
       return NextResponse.json({ error: 'Missing batch_id' }, { status: 400 });
     }
 
-    // 重置失败任务为 pending
-    let query = supabase
+    if (action === 'terminate') {
+      // 终止：把所有 running 任务标记为 failed
+      await supabase
+        .from('batch_search_tasks')
+        .update({
+          status: 'failed',
+          error_message: '用户手动终止',
+          completed_at: new Date().toISOString(),
+        })
+        .eq('batch_id', batch_id)
+        .eq('status', 'running');
+
+      // 把所有 pending 也标记为 failed（停止后续执行）
+      await supabase
+        .from('batch_search_tasks')
+        .update({
+          status: 'failed',
+          error_message: '批次已终止',
+        })
+        .eq('batch_id', batch_id)
+        .eq('status', 'pending');
+
+      // 更新批次状态
+      const { count: failedCount } = await supabase
+        .from('batch_search_tasks')
+        .select('id', { count: 'exact', head: true })
+        .eq('batch_id', batch_id)
+        .eq('status', 'failed');
+
+      const { count: totalCount } = await supabase
+        .from('batch_search_tasks')
+        .select('id', { count: 'exact', head: true })
+        .eq('batch_id', batch_id);
+
+      const finalStatus = (failedCount === totalCount) ? 'failed' : 'partial';
+
+      await supabase.from('batch_search_jobs').update({
+        status: finalStatus,
+        completed_at: new Date().toISOString(),
+      }).eq('id', batch_id);
+
+      console.log(`[BatchSearch] 终止批次 ${batch_id}`);
+      return NextResponse.json({ ok: true, action: 'terminated' });
+    }
+
+    // resume: 重置 running + failed → pending
+    // retry: 仅重置 failed → pending
+    const statusesToReset = action === 'resume' ? ['running', 'failed'] : ['failed'];
+
+    await supabase
       .from('batch_search_tasks')
       .update({
         status: 'pending',
@@ -153,17 +203,7 @@ export async function PUT(request: Request) {
         completed_at: null,
       })
       .eq('batch_id', batch_id)
-      .eq('status', 'failed');
-
-    if (task_ids && task_ids.length > 0) {
-      query = query.in('id', task_ids);
-    }
-
-    const { error: updateErr, count } = await query.select('id');
-
-    if (updateErr) {
-      return NextResponse.json({ error: '重置失败' }, { status: 500 });
-    }
+      .in('status', statusesToReset);
 
     // 更新批次状态为 running
     await supabase.from('batch_search_jobs').update({
@@ -177,12 +217,13 @@ export async function PUT(request: Request) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ batch_id }),
-    }).catch(e => console.error('[BatchSearch] 触发重试失败:', e));
+    }).catch(e => console.error('[BatchSearch] 触发失败:', e));
 
-    console.log(`[BatchSearch] 重试批次 ${batch_id}`);
-    return NextResponse.json({ ok: true, batch_id });
+    console.log(`[BatchSearch] ${action} 批次 ${batch_id}`);
+    return NextResponse.json({ ok: true, action });
 
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
