@@ -1,0 +1,29 @@
+[
+  {
+    "id": 1781527876091,
+    "subject": "用户",
+    "predicate": "意向专业",
+    "object": "人机交互(HCI)",
+    "start_time": "2026-06-15T12:51:16.091Z",
+    "end_time": "2026-06-15T12:52:50.433Z",
+    "confidence": 1
+  },
+  {
+    "id": 1781527970433,
+    "subject": "用户",
+    "predicate": "意向专业",
+    "object": "人工智能",
+    "start_time": "2026-06-15T12:52:50.433Z",
+    "end_time": null,
+    "confidence": 1
+  },
+  {
+    "id": 1781528040153,
+    "subject": "用户",
+    "predicate": "地理位置",
+    "object": "纽约长岛",
+    "start_time": "2026-06-15T12:54:00.153Z",
+    "end_time": null,
+    "confidence": 1
+  }
+]

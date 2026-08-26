@@ -1,0 +1,2663 @@
+[
+  {
+    "description": "在知识库中进行统一搜索，支持关键词检索、场景/类型/分类过滤、时间范围筛选、团队栏目过滤等功能。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "endpoint": {
+          "type": "string",
+          "description": "Flora host URL. Default host: env FLORA_HOST or http://localhost:8080."
+        },
+        "bearerToken": {
+          "type": "string",
+          "description": "Authorization token for Flora. Use raw token (without 'Bearer '). Default: env FLORA_AUTH_BEARER"
+        },
+        "query": {
+          "type": "string",
+          "description": "搜索关键词"
+        },
+        "type_ids": {
+          "type": [
+            "null",
+            "array"
+          ],
+          "items": {
+            "type": "integer"
+          },
+          "description": "分类ID列表"
+        },
+        "scene_key": {
+          "type": [
+            "null",
+            "array"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "description": "场景key，可选值：higher_education, personal, organizational"
+        },
+        "kind_key": {
+          "type": [
+            "null",
+            "array"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "description": "类型key"
+        },
+        "category_key": {
+          "type": "string",
+          "description": "分类key"
+        },
+        "label_key": {
+          "type": [
+            "null",
+            "array"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "description": "团队栏目"
+        },
+        "location": {
+          "type": "string",
+          "description": "检索位置：common(公共), person(个人), org(团队)"
+        },
+        "published_start_time": {
+          "type": "string",
+          "description": "发布开始时间，格式：2006-01-02 15:04:05"
+        },
+        "published_end_time": {
+          "type": "string",
+          "description": "发布结束时间，格式：2006-01-02 15:04:05"
+        },
+        "release_start_time": {
+          "type": "string",
+          "description": "创建开始时间，格式：2006-01-02 15:04:05"
+        },
+        "release_end_time": {
+          "type": "string",
+          "description": "创建结束时间，格式：2006-01-02 15:04:05"
+        },
+        "selected_modules_only": {
+          "type": [
+            "null",
+            "array"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "description": "筛选模块"
+        },
+        "sortby": {
+          "type": "string",
+          "description": "排序字段：published_date, release_date。默认创建时间降序"
+        },
+        "offset": {
+          "type": "integer",
+          "description": "分页偏移量，默认0"
+        },
+        "size": {
+          "type": "integer",
+          "description": "每页数量，默认10"
+        }
+      },
+      "examples": [
+        {
+          "location": "common",
+          "offset": 0,
+          "query": "高考志愿填报",
+          "size": 10
+        }
+      ],
+      "additionalProperties": false
+    },
+    "name": "assist_repository_search",
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "integer"
+        },
+        "error": {
+          "type": "string"
+        },
+        "items": {
+          "type": [
+            "null",
+            "array"
+          ],
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer"
+              },
+              "model_name": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "name_cn": {
+                "type": "string"
+              },
+              "name_en": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "description_cn": {
+                "type": "string"
+              },
+              "description_en": {
+                "type": "string"
+              },
+              "source": {
+                "type": "string"
+              },
+              "source_cn": {
+                "type": "string"
+              },
+              "source_en": {
+                "type": "string"
+              },
+              "url": {
+                "type": "string"
+              },
+              "type_id": {
+                "type": "integer"
+              },
+              "type_name": {
+                "type": "string"
+              },
+              "type_name_cn": {
+                "type": "string"
+              },
+              "type_name_en": {
+                "type": "string"
+              },
+              "latest_modified": {
+                "type": "string"
+              },
+              "published_date": {
+                "type": "string"
+              },
+              "es_highlight": {
+                "type": "string"
+              },
+              "scene_key": {
+                "type": [
+                  "null",
+                  "array"
+                ],
+                "items": {
+                  "type": "string"
+                }
+              },
+              "kind_key": {
+                "type": [
+                  "null",
+                  "array"
+                ],
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "total": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "description": "创建或更新 AI 对话记录。自动使用当前用户 UID 作为 asker_id。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "endpoint": {
+          "type": "string",
+          "description": "Flora host URL. Default host: env FLORA_HOST or http://localhost:8080."
+        },
+        "bearerToken": {
+          "type": "string",
+          "description": "Authorization token for Flora. Use raw token (without 'Bearer '). Default: env FLORA_AUTH_BEARER"
+        },
+        "id": {
+          "type": [
+            "null",
+            "integer"
+          ],
+          "description": "Record id. If omitted, creates a new record; if provided, updates the existing record."
+        },
+        "deleted": {
+          "type": [
+            "null",
+            "boolean"
+          ],
+          "description": "Soft delete flag. If true, marks the record as deleted."
+        },
+        "name": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "Dialogue name (required when creating). Will be mapped to model field title."
+        },
+        "additional_information": {
+          "type": "string",
+          "description": "Additional information JSON string. Validated as JSON."
+        }
+      },
+      "examples": [
+        {
+          "additional_information": "{\"foo\": \"bar\"}",
+          "name": "我的第一次对话"
+        },
+        {
+          "additional_information": "{\"foo\": \"updated\"}",
+          "deleted": true,
+          "id": 123,
+          "name": "更新后的对话"
+        }
+      ],
+      "additionalProperties": false
+    },
+    "name": "assistaidialogues_upsert",
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "integer"
+        },
+        "error": {
+          "type": "string"
+        },
+        "asker_id": {
+          "type": "integer"
+        },
+        "id": {
+          "type": "integer"
+        },
+        "scene": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "description": "在 AI 对话会话中创建或更新聊天消息。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "endpoint": {
+          "type": "string",
+          "description": "Flora host URL. Default host: env FLORA_HOST or http://localhost:8080."
+        },
+        "bearerToken": {
+          "type": "string",
+          "description": "Authorization token for Flora. Use raw token (without 'Bearer '). Default: env FLORA_AUTH_BEARER"
+        },
+        "id": {
+          "type": [
+            "null",
+            "integer"
+          ],
+          "description": "Record id. If omitted, creates a new record; if provided, updates the existing record."
+        },
+        "deleted": {
+          "type": [
+            "null",
+            "boolean"
+          ],
+          "description": "Soft delete flag. If true, marks the record as deleted."
+        },
+        "name": {
+          "type": "string",
+          "description": "Optional display name. If ask is empty, uses name as ask."
+        },
+        "ask": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "User question (required when creating). If empty, falls back to name."
+        },
+        "ai_data": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "AI answer JSON string (required when creating). Validated as JSON."
+        },
+        "assist_ai_dialogues_id": {
+          "type": "integer",
+          "description": "Existing dialogue id. If omitted, creates a new dialogue."
+        },
+        "dialogue_name": {
+          "type": "string",
+          "description": "Dialogue name when auto-creating a new dialogue. Default: name or ask."
+        }
+      },
+      "examples": [
+        {
+          "ai_data": "{\"answer\":\"我是AI\"}",
+          "ask": "你是谁？"
+        },
+        {
+          "ai_data": "{\"answer\":\"好的\"}",
+          "ask": "帮我总结一下",
+          "assist_ai_dialogues_id": 1861,
+          "deleted": true,
+          "id": 456
+        }
+      ],
+      "additionalProperties": false
+    },
+    "name": "assistchat_upsert",
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "integer"
+        },
+        "error": {
+          "type": "string"
+        },
+        "asker_id": {
+          "type": "integer"
+        },
+        "assist_ai_dialogues_id": {
+          "type": "integer"
+        },
+        "id": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "description": "将登录令牌兑换为用户 JWT 认证令牌。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "endpoint": {
+          "type": "string",
+          "description": "Flora host URL. Default host: env FLORA_HOST or http://localhost:8080."
+        },
+        "bearerToken": {
+          "type": "string",
+          "description": "Authorization token for Flora. Use raw token (without 'Bearer '). Default: env FLORA_AUTH_BEARER"
+        },
+        "account": {
+          "type": "string",
+          "description": "Account (required)"
+        },
+        "token": {
+          "type": "string",
+          "description": "Login token (required)"
+        }
+      },
+      "examples": [
+        {
+          "account": "demo@example.com",
+          "token": "abc123xyz"
+        }
+      ],
+      "required": [
+        "account",
+        "token"
+      ],
+      "additionalProperties": false
+    },
+    "name": "auth_get_user_token_with_token_v2",
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "integer"
+        },
+        "error": {
+          "type": "string"
+        },
+        "token": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "description": "使用账号和密码请求登录令牌。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "endpoint": {
+          "type": "string",
+          "description": "Flora host URL. Default host: env FLORA_HOST or http://localhost:8080."
+        },
+        "account": {
+          "type": "string",
+          "description": "Account (required)"
+        },
+        "password": {
+          "type": "string",
+          "description": "Password (required)"
+        }
+      },
+      "examples": [
+        {
+          "account": "demo@example.com",
+          "password": "password123"
+        }
+      ],
+      "required": [
+        "account",
+        "password"
+      ],
+      "additionalProperties": false
+    },
+    "name": "auth_request_login_token",
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "integer"
+        },
+        "error": {
+          "type": "string"
+        },
+        "token": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "description": "为当前用户会话请求登录令牌（自动获取账号）。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "endpoint": {
+          "type": "string",
+          "description": "Flora host URL. Default host: env FLORA_HOST or http://localhost:8080."
+        },
+        "bearerToken": {
+          "type": "string",
+          "description": "Authorization token for Flora. Use raw token (without 'Bearer '). Default: env FLORA_AUTH_BEARER"
+        }
+      },
+      "examples": [
+        {}
+      ],
+      "additionalProperties": false
+    },
+    "name": "auth_request_login_token_v2",
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "integer"
+        },
+        "error": {
+          "type": "string"
+        },
+        "account": {
+          "type": "string"
+        },
+        "token": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "description": "创建通用测评记录。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "endpoint": {
+          "type": "string",
+          "description": "Flora host URL. Default host: env FLORA_HOST or http://localhost:8080."
+        },
+        "bearerToken": {
+          "type": "string",
+          "description": "Authorization token for Flora. Use raw token (without 'Bearer '). Default: env FLORA_AUTH_BEARER"
+        },
+        "kind": {
+          "type": "string",
+          "description": "测评类型，如 course_planning, fos, career_gaokao, career_orientation, professional_inclination, holland_career_interest, mbti_personality, gaokao2 等"
+        }
+      },
+      "examples": [
+        {
+          "kind": "course_planning"
+        }
+      ],
+      "required": [
+        "kind"
+      ],
+      "additionalProperties": false
+    },
+    "name": "create_ceping",
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "integer"
+        },
+        "error": {
+          "type": "string"
+        },
+        "client_id": {
+          "type": "integer"
+        },
+        "ceping_id": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "description": "创建高考志愿测评。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "endpoint": {
+          "type": "string",
+          "description": "Flora host URL. Default host: env FLORA_HOST or http://localhost:8080."
+        },
+        "bearerToken": {
+          "type": "string",
+          "description": "Authorization token for Flora. Use raw token (without 'Bearer '). Default: env FLORA_AUTH_BEARER"
+        },
+        "ncee_score": {
+          "type": "integer",
+          "description": "高考分数"
+        },
+        "elective_subjects": {
+          "type": [
+            "null",
+            "array"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "description": "选科，可选值：物理、化学、生物、历史、地理、思想政治"
+        },
+        "bkpc": {
+          "type": "string",
+          "description": "报考批次，例如 本科普通批"
+        },
+        "precedence": {
+          "type": "integer",
+          "description": "位次"
+        }
+      },
+      "examples": [
+        {
+          "bkpc": "本科普通批",
+          "elective_subjects": [
+            "物理",
+            "化学",
+            "生物"
+          ],
+          "ncee_score": 600,
+          "precedence": 22548
+        }
+      ],
+      "required": [
+        "ncee_score",
+        "elective_subjects",
+        "bkpc",
+        "precedence"
+      ],
+      "additionalProperties": false
+    },
+    "name": "create_gaokao_ceping",
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "integer"
+        },
+        "error": {
+          "type": "string"
+        },
+        "client_id": {
+          "type": "integer"
+        },
+        "ceping_id": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "description": "列出当前用户的测评记录列表。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "endpoint": {
+          "type": "string",
+          "description": "Flora host URL. Default host: env FLORA_HOST or http://localhost:8080."
+        },
+        "bearerToken": {
+          "type": "string",
+          "description": "Authorization token for Flora. Use raw token (without 'Bearer '). Default: env FLORA_AUTH_BEARER"
+        }
+      },
+      "examples": [
+        {}
+      ],
+      "additionalProperties": false
+    },
+    "name": "crmclient_gaokao2_ceping_list",
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "integer"
+        },
+        "client_id": {
+          "type": "integer"
+        },
+        "items": {
+          "type": [
+            "null",
+            "array"
+          ],
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer"
+              },
+              "name": {
+                "type": "string"
+              },
+              "url": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "urls": {
+          "type": [
+            "null",
+            "array"
+          ],
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "description": "更新当前用户的个人资料信息。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "endpoint": {
+          "type": "string",
+          "description": "Flora host URL. Default host: env FLORA_HOST or http://localhost:8080."
+        },
+        "bearerToken": {
+          "type": "string",
+          "description": "Authorization token for Flora. Use raw token (without 'Bearer '). Default: env FLORA_AUTH_BEARER"
+        },
+        "key": {
+          "type": "string",
+          "description": "Field key to update. Allowed: gaokao_year, gaokao_province, zhi_ji_personal_resume"
+        },
+        "values": {
+          "type": "string",
+          "description": "JSON string containing the key/value to update. id is auto-injected from current user's client_id"
+        }
+      },
+      "examples": [
+        {
+          "key": "gaokao_year",
+          "values": "{\"gaokao_year\":\"2026\"}"
+        },
+        {
+          "key": "gaokao_province",
+          "values": "{\"gaokao_province\":\"北京市\"}"
+        },
+        {
+          "key": "zhi_ji_personal_resume",
+          "values": "{\"zhi_ji_personal_resume\":\"{\\\"name\\\":\\\"张三\\\",\\\"experience\\\":[\\\"竞赛\\\"]}\"}"
+        }
+      ],
+      "required": [
+        "key",
+        "values"
+      ],
+      "additionalProperties": false
+    },
+    "name": "crmclient_update_profile",
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "integer"
+        },
+        "error": {
+          "type": "string"
+        },
+        "client_id": {
+          "type": "integer"
+        },
+        "key": {
+          "type": "string"
+        },
+        "saved_id": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "description": "判断当前用户是否拥有指定的权限标签。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "endpoint": {
+          "type": "string",
+          "description": "Flora host URL. Default host: env FLORA_HOST or http://localhost:8080."
+        },
+        "bearerToken": {
+          "type": "string",
+          "description": "Authorization token for Flora. Use raw token (without 'Bearer '). Default: env FLORA_AUTH_BEARER"
+        },
+        "matchPermissionTags": {
+          "type": [
+            "null",
+            "array"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "description": "Permission tags to match"
+        }
+      },
+      "examples": [
+        {
+          "matchPermissionTags": [
+            "permission_list.admin",
+            "can_edit_profile"
+          ]
+        }
+      ],
+      "required": [
+        "matchPermissionTags"
+      ],
+      "additionalProperties": false
+    },
+    "name": "dash_generic_allow_permission_tags",
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "integer"
+        },
+        "error": {
+          "type": "string"
+        },
+        "allowPermissionTags": {
+          "type": [
+            "null",
+            "array"
+          ],
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "description": "获取指定模型的字段信息（包括类型、标签、关联关系等）。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "endpoint": {
+          "type": "string",
+          "description": "Flora host URL. Default host: env FLORA_HOST or http://localhost:8080."
+        },
+        "bearerToken": {
+          "type": "string",
+          "description": "Authorization token for Flora. Use raw token (without 'Bearer '). Default: env FLORA_AUTH_BEARER"
+        },
+        "model": {
+          "type": "string",
+          "description": "Dash model name, e.g. DashMenu"
+        },
+        "fields": {
+          "type": [
+            "null",
+            "array"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "description": "Optional list of field paths. When empty, returns all fields info."
+        }
+      },
+      "examples": [
+        {
+          "model": "Application"
+        }
+      ],
+      "required": [
+        "model"
+      ],
+      "additionalProperties": false
+    },
+    "name": "dash_generic_fields",
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "integer"
+        },
+        "rawFieldInfo": {
+          "type": "string"
+        },
+        "error": {
+          "type": "string"
+        },
+        "fields": {
+          "type": [
+            "null",
+            "array"
+          ],
+          "items": {
+            "type": "object",
+            "properties": {
+              "field_path": {
+                "type": "string"
+              },
+              "field_type": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "is_relation": {
+                "type": "boolean"
+              },
+              "relation_model": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "field_path",
+              "field_type",
+              "is_relation"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "description": "根据 ID 或外部 ID 获取指定模型的单条记录详情。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "endpoint": {
+          "type": "string",
+          "description": "Flora host URL. Default host: env FLORA_HOST or http://localhost:8080."
+        },
+        "bearerToken": {
+          "type": "string",
+          "description": "Authorization token for Flora. Use raw token (without 'Bearer '). Default: env FLORA_AUTH_BEARER"
+        },
+        "model": {
+          "type": "string",
+          "description": "Model name"
+        },
+        "id": {
+          "type": "integer",
+          "description": "Record ID (required by gql schema; pass 0 if only using floraExternalID)"
+        },
+        "floraExternalID": {
+          "type": "string",
+          "description": "Record flora external id"
+        },
+        "fields": {
+          "type": [
+            "null",
+            "array"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "description": "Returned field list"
+        },
+        "matchRecordTags": {
+          "type": [
+            "null",
+            "array"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "description": "Record tags to match"
+        },
+        "queryTags": {
+          "type": [
+            "null",
+            "array"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "description": "Query tags"
+        }
+      },
+      "examples": [
+        {
+          "fields": [
+            "id",
+            "name"
+          ],
+          "id": 1,
+          "model": "DashMenu"
+        }
+      ],
+      "required": [
+        "model",
+        "id"
+      ],
+      "additionalProperties": false
+    },
+    "name": "dash_generic_get",
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "integer"
+        },
+        "error": {
+          "type": "string"
+        },
+        "item": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "description": "根据 Flora 外部 ID 获取指定模型的记录详情。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "endpoint": {
+          "type": "string",
+          "description": "Flora host URL. Default host: env FLORA_HOST or http://localhost:8080."
+        },
+        "bearerToken": {
+          "type": "string",
+          "description": "Authorization token for Flora. Use raw token (without 'Bearer '). Default: env FLORA_AUTH_BEARER"
+        },
+        "model": {
+          "type": "string",
+          "description": "Model name"
+        },
+        "floraExternalID": {
+          "type": "string",
+          "description": "Record flora external id"
+        },
+        "fields": {
+          "type": [
+            "null",
+            "array"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "description": "Returned field list"
+        },
+        "matchRecordTags": {
+          "type": [
+            "null",
+            "array"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "description": "Record tags to match"
+        },
+        "queryTags": {
+          "type": [
+            "null",
+            "array"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "description": "Query tags"
+        }
+      },
+      "examples": [
+        {
+          "fields": [
+            "id",
+            "name"
+          ],
+          "floraExternalID": "DashMenu-1",
+          "model": "DashMenu"
+        }
+      ],
+      "required": [
+        "model",
+        "floraExternalID"
+      ],
+      "additionalProperties": false
+    },
+    "name": "dash_generic_get_by_flora_external_id",
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "integer"
+        },
+        "error": {
+          "type": "string"
+        },
+        "item": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "description": "获取系统中所有可用的模型列表。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "endpoint": {
+          "type": "string",
+          "description": "Flora host URL. Default host: env FLORA_HOST or http://localhost:8080."
+        },
+        "bearerToken": {
+          "type": "string",
+          "description": "Authorization token for Flora. Use raw token (without 'Bearer '). Default: env FLORA_AUTH_BEARER"
+        }
+      },
+      "examples": [
+        {}
+      ],
+      "additionalProperties": false
+    },
+    "name": "dash_generic_get_model_list",
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "integer"
+        },
+        "error": {
+          "type": "string"
+        },
+        "models": {
+          "type": [
+            "null",
+            "array"
+          ],
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "display_name": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "display_name"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "description": "搜索指定记录的关联模型数据（如子项、关联项等）。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "endpoint": {
+          "type": "string",
+          "description": "Flora host URL. Default host: env FLORA_HOST or http://localhost:8080."
+        },
+        "bearerToken": {
+          "type": "string",
+          "description": "Authorization token for Flora. Use raw token (without 'Bearer '). Default: env FLORA_AUTH_BEARER"
+        },
+        "currentModel": {
+          "type": "string",
+          "description": "Current model name"
+        },
+        "currentID": {
+          "type": [
+            "null",
+            "integer"
+          ],
+          "description": "Current record ID"
+        },
+        "currentExternalID": {
+          "type": "string",
+          "description": "Current record external id"
+        },
+        "currentRelationField": {
+          "type": "string",
+          "description": "Relation field on current model"
+        },
+        "condition": {
+          "type": "string",
+          "description": "Filter condition"
+        },
+        "fields": {
+          "type": [
+            "null",
+            "array"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "description": "Returned field list"
+        },
+        "limit": {
+          "type": [
+            "null",
+            "integer"
+          ],
+          "description": "Data count limit. Default: 10, max: 100."
+        },
+        "offset": {
+          "type": [
+            "null",
+            "integer"
+          ],
+          "description": "Pagination offset"
+        },
+        "sort": {
+          "type": "string",
+          "description": "Sort expression"
+        },
+        "searchType": {
+          "type": "string",
+          "description": "Only supports 'associated' in MCP layer. Default: associated."
+        },
+        "matchRecordTags": {
+          "type": [
+            "null",
+            "array"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "description": "Record tags to match"
+        },
+        "customCountFields": {
+          "type": "string",
+          "description": "Custom count fields"
+        },
+        "filterParams": {
+          "type": "string",
+          "description": "Filter params JSON string"
+        },
+        "treeTableUse": {
+          "type": [
+            "null",
+            "boolean"
+          ],
+          "description": "Whether to use tree table"
+        },
+        "treeTableParentField": {
+          "type": "string",
+          "description": "Tree table parent field"
+        },
+        "treeTableParentValue": {
+          "type": [
+            "null",
+            "integer"
+          ],
+          "description": "Tree table parent value"
+        },
+        "treeTableMode": {
+          "type": "string",
+          "description": "show_all_parents/show_all_childrens"
+        },
+        "notLoadPageInfo": {
+          "type": [
+            "null",
+            "boolean"
+          ],
+          "description": "Whether not to load page_info"
+        },
+        "queryTags": {
+          "type": [
+            "null",
+            "array"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "description": "Query tags"
+        }
+      },
+      "examples": [
+        {
+          "condition": "{\"logic_operator\":\"&\",\"children\":[{\"leaf\":{\"field\":\"id\",\"comparator\":\">\",\"value\":0}}]}",
+          "currentID": 1,
+          "currentModel": "DashMenu",
+          "currentRelationField": "children",
+          "fields": [
+            "id",
+            "name"
+          ],
+          "limit": 10,
+          "offset": 0,
+          "searchType": "associated",
+          "sort": "[{\"field\":\"id\",\"order\":\"DESC\"}]"
+        }
+      ],
+      "required": [
+        "currentModel",
+        "currentRelationField"
+      ],
+      "additionalProperties": false
+    },
+    "name": "dash_generic_relation_model_search",
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "integer"
+        },
+        "error": {
+          "type": "string"
+        },
+        "items": {
+          "type": [
+            "null",
+            "array"
+          ],
+          "items": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "total": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "description": "创建或更新模型记录。如果values中包含id则为更新操作，否则为创建操作。高危操作谨慎使用。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "endpoint": {
+          "type": "string",
+          "description": "Flora host URL. Default host: env FLORA_HOST or http://localhost:8080."
+        },
+        "bearerToken": {
+          "type": "string",
+          "description": "Authorization token for Flora. Use raw token (without 'Bearer '). Default: env FLORA_AUTH_BEARER"
+        },
+        "model": {
+          "type": "string",
+          "description": "Model name"
+        },
+        "values": {
+          "type": "string",
+          "description": "JSON string of values to save. Include 'id' for updates."
+        },
+        "currentModel": {
+          "type": "string",
+          "description": "Current model name (parent)"
+        },
+        "currentID": {
+          "type": "integer",
+          "description": "Current record ID (parent)"
+        },
+        "currentExternalID": {
+          "type": "string",
+          "description": "Current record external ID (parent)"
+        },
+        "currentRelationField": {
+          "type": "string",
+          "description": "Relation field on current model"
+        }
+      },
+      "examples": [
+        {
+          "model": "Application",
+          "values": "{\"name\": \"New App\", \"description\": \"A new application\"}"
+        }
+      ],
+      "required": [
+        "model",
+        "values"
+      ],
+      "additionalProperties": false
+    },
+    "name": "dash_generic_save",
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "integer"
+        },
+        "error": {
+          "type": "string"
+        },
+        "id": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "description": "在指定模型中搜索记录，支持条件过滤、排序和分页。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "endpoint": {
+          "type": "string",
+          "description": "Flora host URL. Default host: env FLORA_HOST or http://localhost:8080."
+        },
+        "bearerToken": {
+          "type": "string",
+          "description": "Authorization token for Flora. Use raw token (without 'Bearer '). Default: env FLORA_AUTH_BEARER"
+        },
+        "model": {
+          "type": "string",
+          "description": "Model name"
+        },
+        "condition": {
+          "type": "string",
+          "description": "Filter condition"
+        },
+        "fields": {
+          "type": [
+            "null",
+            "array"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "description": "Returned field list (required)"
+        },
+        "limit": {
+          "type": "integer",
+          "description": "Data count limit. Default: 10, max: 100."
+        },
+        "offset": {
+          "type": "integer",
+          "description": "Pagination offset"
+        },
+        "sort": {
+          "type": "string",
+          "description": "Sort expression"
+        },
+        "applyListViewFilter": {
+          "type": [
+            "null",
+            "boolean"
+          ],
+          "description": "Whether to apply list view filter"
+        },
+        "matchRecordTags": {
+          "type": [
+            "null",
+            "array"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "description": "Record tags to match"
+        },
+        "viewConfigExternalID": {
+          "type": "string",
+          "description": "Current view config external id"
+        },
+        "customCountFields": {
+          "type": "string",
+          "description": "Custom count fields"
+        },
+        "treeTableUse": {
+          "type": [
+            "null",
+            "boolean"
+          ],
+          "description": "Whether to use tree table"
+        },
+        "treeTableParentField": {
+          "type": "string",
+          "description": "Tree table parent field"
+        },
+        "treeTableParentValue": {
+          "type": [
+            "null",
+            "integer"
+          ],
+          "description": "Tree table parent value"
+        },
+        "notLoadPageInfo": {
+          "type": [
+            "null",
+            "boolean"
+          ],
+          "description": "Whether not to load page_info"
+        },
+        "queryTags": {
+          "type": [
+            "null",
+            "array"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "description": "Query tags"
+        }
+      },
+      "examples": [
+        {
+          "condition": "{\"logic_operator\":\"&\",\"children\":[{\"leaf\":{\"field\":\"id\",\"comparator\":\">\",\"value\":0}}]}",
+          "fields": [
+            "id",
+            "name"
+          ],
+          "limit": 10,
+          "model": "DashMenu",
+          "offset": 0,
+          "sort": "[{\"field\":\"id\",\"order\":\"DESC\"}]"
+        }
+      ],
+      "required": [
+        "model",
+        "fields"
+      ],
+      "additionalProperties": false
+    },
+    "name": "dash_generic_search",
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "integer"
+        },
+        "error": {
+          "type": "string"
+        },
+        "items": {
+          "type": [
+            "null",
+            "array"
+          ],
+          "items": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "total": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "description": "将文件上传至系统存储。文件内容需经过 Base64 编码。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "endpoint": {
+          "type": "string",
+          "description": "Flora host URL. Default host: env FLORA_HOST or http://localhost:8080."
+        },
+        "bearerToken": {
+          "type": "string",
+          "description": "Authorization token for Flora. Use raw token (without 'Bearer '). Default: env FLORA_AUTH_BEARER"
+        },
+        "fileContent": {
+          "type": "string",
+          "description": "Base64 encoded file content (required)"
+        },
+        "fileName": {
+          "type": "string",
+          "description": "File name (required)"
+        },
+        "public": {
+          "type": [
+            "null",
+            "boolean"
+          ],
+          "description": "Whether the file is public. Default: false."
+        },
+        "external_id": {
+          "type": "string",
+          "description": "External ID to associate with the file."
+        }
+      },
+      "examples": [
+        {
+          "fileContent": "JVBERi0xLjQK...",
+          "fileName": "example.pdf",
+          "public": true
+        }
+      ],
+      "required": [
+        "fileContent",
+        "fileName"
+      ],
+      "additionalProperties": false
+    },
+    "name": "file_upload",
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "integer"
+        },
+        "id": {
+          "type": "integer"
+        },
+        "uri": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "error": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "description": "获取当前用户的个人知识库文件及文件夹结构。返回一个递归的文件夹树状结构（folder 字段）。每个文件夹包含 id, name, fileList (文件列表) 和 children (子文件夹列表)。文件对象包含 id, name, origin_filename, content, size 等。注意：该工具返回递归深度结构，请按需解析树形数据。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "endpoint": {
+          "type": "string",
+          "description": "Flora host URL. Default host: env FLORA_HOST or http://localhost:8080."
+        },
+        "bearerToken": {
+          "type": "string",
+          "description": "Authorization token for Flora. Use raw token (without 'Bearer '). Default: env FLORA_AUTH_BEARER"
+        }
+      },
+      "examples": [
+        {}
+      ],
+      "additionalProperties": false
+    },
+    "name": "get_my_file",
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "integer"
+        },
+        "error": {
+          "type": "string"
+        },
+        "folder": {
+          "type": [
+            "null",
+            "object"
+          ],
+          "properties": {
+            "id": {
+              "type": "integer"
+            },
+            "name": {
+              "type": "string"
+            },
+            "parent_id": {
+              "type": "integer"
+            },
+            "system": {
+              "type": "boolean"
+            },
+            "size": {
+              "type": "integer"
+            },
+            "fileList": {
+              "type": [
+                "null",
+                "array"
+              ],
+              "items": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "type": "string"
+                  },
+                  "id": {
+                    "type": "integer"
+                  },
+                  "origin_filename": {
+                    "type": "string"
+                  },
+                  "content": {
+                    "type": "string"
+                  },
+                  "size": {
+                    "type": "integer"
+                  },
+                  "if_has_index": {
+                    "type": [
+                      "null",
+                      "boolean"
+                    ]
+                  },
+                  "index_fail_count": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "name",
+                  "type",
+                  "id"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "children": {
+              "type": [
+                "null",
+                "array"
+              ],
+              "items": true
+            }
+          },
+          "required": [
+            "id",
+            "name"
+          ],
+          "additionalProperties": false
+        },
+        "needUpdate": {
+          "type": "boolean"
+        },
+        "spaceFull": {
+          "type": "boolean"
+        },
+        "rootFolderId": {
+          "type": "integer"
+        },
+        "defaultFolderId": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "description": "管理个人知识库文件（新建、修改、删除）。新建文件如未提供文件夹 ID，将默认存入默认知识库文件夹。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "endpoint": {
+          "type": "string",
+          "description": "Flora host URL. Default host: env FLORA_HOST or http://localhost:8080."
+        },
+        "bearerToken": {
+          "type": "string",
+          "description": "Authorization token for Flora. Use raw token (without 'Bearer '). Default: env FLORA_AUTH_BEARER"
+        },
+        "action": {
+          "type": "string",
+          "description": "Action: create, update, delete"
+        },
+        "id": {
+          "type": [
+            "null",
+            "integer"
+          ],
+          "description": "File ID (required for update and delete)"
+        },
+        "name": {
+          "type": "string",
+          "description": "File name (optional for update and create)"
+        },
+        "folder_id": {
+          "type": [
+            "null",
+            "integer"
+          ],
+          "description": "Target folder ID (optional for create, defaults to default knowledge base folder)"
+        },
+        "blob_id": {
+          "type": [
+            "null",
+            "integer"
+          ],
+          "description": "Blob ID for the file (required for create)"
+        }
+      },
+      "examples": [
+        {
+          "action": "create",
+          "blob_id": 12345,
+          "folder_id": null,
+          "name": "new_file_name.pdf"
+        },
+        {
+          "action": "update",
+          "folder_id": 456,
+          "id": 123,
+          "name": "new_file_name.pdf"
+        },
+        {
+          "action": "delete",
+          "id": 123
+        }
+      ],
+      "required": [
+        "action"
+      ],
+      "additionalProperties": false
+    },
+    "name": "repository_file_manage",
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "integer"
+        },
+        "error": {
+          "type": "string"
+        },
+        "id": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "description": "管理个人知识库文件夹（新建、修改、删除）。系统默认文件夹不可修改或删除。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "endpoint": {
+          "type": "string",
+          "description": "Flora host URL. Default host: env FLORA_HOST or http://localhost:8080."
+        },
+        "bearerToken": {
+          "type": "string",
+          "description": "Authorization token for Flora. Use raw token (without 'Bearer '). Default: env FLORA_AUTH_BEARER"
+        },
+        "action": {
+          "type": "string",
+          "description": "Action: create, update, delete"
+        },
+        "id": {
+          "type": [
+            "null",
+            "integer"
+          ],
+          "description": "Folder ID (required for update and delete)"
+        },
+        "name": {
+          "type": "string",
+          "description": "Folder name (required for create and update)"
+        },
+        "parent_id": {
+          "type": [
+            "null",
+            "integer"
+          ],
+          "description": "Parent folder ID for new folder"
+        }
+      },
+      "examples": [
+        {
+          "action": "create",
+          "name": "新建文件夹",
+          "parent_id": null
+        },
+        {
+          "action": "update",
+          "id": 123,
+          "name": "重命名文件夹"
+        },
+        {
+          "action": "delete",
+          "id": 123
+        }
+      ],
+      "required": [
+        "action"
+      ],
+      "additionalProperties": false
+    },
+    "name": "repository_folder_manage",
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "integer"
+        },
+        "error": {
+          "type": "string"
+        },
+        "id": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "description": "使用激活码激活服务。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "endpoint": {
+          "type": "string",
+          "description": "Flora host URL. Default host: env FLORA_HOST or http://localhost:8080."
+        },
+        "bearerToken": {
+          "type": "string",
+          "description": "Authorization token for Flora. Use raw token (without 'Bearer '). Default: env FLORA_AUTH_BEARER"
+        },
+        "code": {
+          "type": "string",
+          "description": "Activation code (required)"
+        }
+      },
+      "examples": [
+        {
+          "code": "ABCD1234",
+          "user_id": 12345
+        }
+      ],
+      "required": [
+        "code"
+      ],
+      "additionalProperties": false
+    },
+    "name": "service_activation_code",
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "integer"
+        },
+        "error": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "description": "获取用户的第三方服务信息。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "endpoint": {
+          "type": "string",
+          "description": "Flora host URL. Default host: env FLORA_HOST or http://localhost:8080."
+        },
+        "bearerToken": {
+          "type": "string",
+          "description": "Authorization token for Flora. Use raw token (without 'Bearer '). Default: env FLORA_AUTH_BEARER"
+        },
+        "service_id": {
+          "type": "string",
+          "description": "Service ID (required)"
+        }
+      },
+      "examples": [
+        {
+          "service_id": "abc123",
+          "user_id": "12345"
+        }
+      ],
+      "required": [
+        "service_id"
+      ],
+      "additionalProperties": false
+    },
+    "name": "third_party_user_service_info",
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "integer"
+        },
+        "error": {
+          "type": "string"
+        },
+        "user_id": {
+          "type": "string"
+        },
+        "available_times": {
+          "type": "integer"
+        },
+        "end_time": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "description": "获取当前用户的 Client Profile ID。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "endpoint": {
+          "type": "string",
+          "description": "Flora host URL. Default host: env FLORA_HOST or http://localhost:8080."
+        },
+        "bearerToken": {
+          "type": "string",
+          "description": "Authorization token for Flora. Use raw token (without 'Bearer '). Default: env FLORA_AUTH_BEARER"
+        }
+      },
+      "examples": [
+        {}
+      ],
+      "additionalProperties": false
+    },
+    "name": "user_client_profile_id",
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "integer"
+        },
+        "error": {
+          "type": "string"
+        },
+        "uid": {
+          "type": "integer"
+        },
+        "client_id": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "description": "通过手机验证码进行登录。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "endpoint": {
+          "type": "string",
+          "description": "Flora host URL. Default host: env FLORA_HOST or http://localhost:8080."
+        },
+        "phone": {
+          "type": "string",
+          "description": "Phone number (required)"
+        },
+        "code": {
+          "type": "string",
+          "description": "SMS code (required)"
+        },
+        "autoRegister": {
+          "type": [
+            "null",
+            "boolean"
+          ],
+          "description": "Default: true."
+        },
+        "returnToken": {
+          "type": [
+            "null",
+            "boolean"
+          ],
+          "description": "Default: true."
+        }
+      },
+      "examples": [
+        {
+          "code": "123456",
+          "phone": "13800000000"
+        }
+      ],
+      "required": [
+        "phone",
+        "code"
+      ],
+      "additionalProperties": false
+    },
+    "name": "user_login_by_phone",
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "integer"
+        },
+        "error": {
+          "type": "string"
+        },
+        "token": {
+          "type": "string"
+        },
+        "is_register": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "description": "获取当前登录用户的个人信息。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "endpoint": {
+          "type": "string",
+          "description": "Flora host URL. Default host: env FLORA_HOST or http://localhost:8080."
+        },
+        "bearerToken": {
+          "type": "string",
+          "description": "Authorization token for Flora. Use raw token (without 'Bearer '). Default: env FLORA_AUTH_BEARER"
+        }
+      },
+      "examples": [
+        {}
+      ],
+      "additionalProperties": false
+    },
+    "name": "user_me",
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "integer"
+        },
+        "error": {
+          "type": "string"
+        },
+        "me": {
+          "type": [
+            "null",
+            "object"
+          ],
+          "properties": {
+            "uid": {
+              "type": "integer"
+            },
+            "name": {
+              "type": "string"
+            },
+            "display_name": {
+              "type": "string"
+            },
+            "nickname": {
+              "type": "string"
+            },
+            "email": {
+              "type": "string"
+            },
+            "phone": {
+              "type": "string"
+            },
+            "avatar": {
+              "type": "string"
+            },
+            "default_identity_id": {
+              "type": "integer"
+            },
+            "is_impersonating": {
+              "type": "boolean"
+            },
+            "user_org": {
+              "type": "string"
+            },
+            "user_org_default_language": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "uid",
+            "name"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "description": "向手机发送登录短信验证码。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "endpoint": {
+          "type": "string",
+          "description": "Flora host URL. Default host: env FLORA_HOST or http://localhost:8080."
+        },
+        "phone": {
+          "type": "string",
+          "description": "Phone number (required)"
+        },
+        "area_code": {
+          "type": "string",
+          "description": "Area code / country code, optional"
+        }
+      },
+      "examples": [
+        {
+          "area_code": "+86",
+          "phone": "13800000000"
+        }
+      ],
+      "required": [
+        "phone"
+      ],
+      "additionalProperties": false
+    },
+    "name": "user_send_login_sms_code",
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "integer"
+        },
+        "error": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "description": "根据企业微信用户ID和名称获取登录token。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "endpoint": {
+          "type": "string",
+          "description": "Flora host URL. Default host: env FLORA_HOST or http://localhost:8080."
+        },
+        "name": {
+          "type": "string",
+          "description": "用户名称"
+        },
+        "user_id": {
+          "type": "string",
+          "description": "企业微信用户ID"
+        }
+      },
+      "examples": [
+        {
+          "name": "张三",
+          "user_id": "zhangsan"
+        }
+      ],
+      "required": [
+        "name",
+        "user_id"
+      ],
+      "additionalProperties": false
+    },
+    "name": "wework_get_token",
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "integer"
+        },
+        "error": {
+          "type": "string"
+        },
+        "token": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "description": "在小方AI知识库中进行语义搜索。自动使用当前用户身份进行检索，支持指定知识库范围。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "endpoint": {
+          "type": "string",
+          "description": "Flora host URL. Default host: env FLORA_HOST or http://localhost:8080."
+        },
+        "bearerToken": {
+          "type": "string",
+          "description": "Authorization token for Flora. Use raw token (without 'Bearer '). Default: env FLORA_AUTH_BEARER"
+        },
+        "content": {
+          "type": "string",
+          "description": "Search query content (required)"
+        },
+        "personalKnowledgeRepositoryIDs": {
+          "type": [
+            "null",
+            "array"
+          ],
+          "items": {
+            "type": "integer"
+          },
+          "description": "Knowledge repository IDs to search in (required)."
+        }
+      },
+      "examples": [
+        {
+          "content": "高考志愿填报指南",
+          "personalKnowledgeRepositoryIDs": [
+            75
+          ]
+        }
+      ],
+      "required": [
+        "content",
+        "personalKnowledgeRepositoryIDs"
+      ],
+      "additionalProperties": false
+    },
+    "name": "xiaofang_knowledge_search",
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "integer"
+        },
+        "error": {
+          "type": "string"
+        },
+        "uid": {
+          "type": "integer"
+        },
+        "client_id": {
+          "type": "integer"
+        },
+        "apiStatus": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "message": {
+          "type": [
+            "null",
+            "object"
+          ],
+          "properties": {
+            "user": {
+              "type": "boolean"
+            },
+            "chat_bot": {
+              "type": "boolean"
+            },
+            "tstamp": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "user",
+            "chat_bot",
+            "tstamp"
+          ],
+          "additionalProperties": false
+        },
+        "relevantDocuments": {
+          "type": [
+            "null",
+            "array"
+          ],
+          "items": {
+            "type": "object",
+            "properties": {
+              "metadata": {
+                "type": "object",
+                "properties": {
+                  "source": {
+                    "type": "string"
+                  },
+                  "index_key": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "source",
+                  "index_key"
+                ],
+                "additionalProperties": false
+              },
+              "doc_content": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "metadata",
+              "doc_content"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "description": "管理知己数字分身（新建、修改、查询）。支持设置名称、描述、数据详情及关联的知识库。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "endpoint": {
+          "type": "string",
+          "description": "Flora host URL. Default host: env FLORA_HOST or http://localhost:8080."
+        },
+        "bearerToken": {
+          "type": "string",
+          "description": "Authorization token for Flora. Use raw token (without 'Bearer '). Default: env FLORA_AUTH_BEARER"
+        },
+        "action": {
+          "type": "string",
+          "description": "Action: create, update, get"
+        },
+        "id": {
+          "type": [
+            "null",
+            "integer"
+          ],
+          "description": "Companion ID (required for update, get)"
+        },
+        "name": {
+          "type": "string",
+          "description": "Companion name (required for create)"
+        },
+        "description": {
+          "type": "string",
+          "description": "Companion description"
+        },
+        "data": {
+          "type": "string",
+          "description": "JSON string containing companion data (must be valid JSON)"
+        },
+        "avatar_ids": {
+          "type": [
+            "null",
+            "array"
+          ],
+          "items": {
+            "type": "integer"
+          },
+          "description": "List of avatar IDs to associate with this companion"
+        },
+        "repository_ids": {
+          "type": [
+            "null",
+            "array"
+          ],
+          "items": {
+            "type": "integer"
+          },
+          "description": "List of repository folder IDs from user's knowledge base"
+        },
+        "public": {
+          "type": [
+            "null",
+            "boolean"
+          ],
+          "description": "Whether the companion is public"
+        }
+      },
+      "examples": [
+        {
+          "action": "create",
+          "avatar_ids": [
+            1,
+            2
+          ],
+          "data": "{\"key\":\"value\"}",
+          "description": "这是一个知己数字分身",
+          "name": "我的数字分身",
+          "public": true,
+          "repository_ids": [
+            1,
+            2
+          ]
+        },
+        {
+          "action": "update",
+          "id": 123,
+          "name": "更新后的名称",
+          "repository_ids": [
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "action": "get",
+          "id": 123
+        }
+      ],
+      "required": [
+        "action"
+      ],
+      "additionalProperties": false
+    },
+    "name": "zhiji_companion_manage",
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "integer"
+        },
+        "error": {
+          "type": "string"
+        },
+        "id": {
+          "type": "integer"
+        },
+        "companion": {
+          "type": [
+            "null",
+            "object"
+          ],
+          "properties": {
+            "id": {
+              "type": "integer"
+            },
+            "name": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "data": {
+              "type": "string"
+            },
+            "avatar_ids": {
+              "type": [
+                "null",
+                "array"
+              ],
+              "items": {
+                "type": "integer"
+              }
+            },
+            "repository_ids": {
+              "type": [
+                "null",
+                "array"
+              ],
+              "items": {
+                "type": "integer"
+              }
+            },
+            "public": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "id",
+            "name",
+            "public"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "additionalProperties": false
+    }
+  }
+]

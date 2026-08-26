@@ -1,0 +1,394 @@
+@import "tailwindcss";
+
+.app-main {
+  margin-left: var(--sidebar-w, 320px);
+  transition: margin-left 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (max-width: 767px) {
+  .app-main {
+    margin-left: 0;
+  }
+  body:has(.mob-bottom-nav) .app-main {
+    padding-bottom: 0 !important;
+  }
+}
+
+/* ── 品牌色系 · 一答参谋紫色系 ────────────────────────────────────────── */
+:root {
+  /* 一答核心品牌色：深紫 #7e57c2 */
+  --primary:       #7e57c2;
+  --primary-dark:  #5e35b1;
+  --primary-light: rgba(126, 87, 194, 0.10);
+  --primary-hover: #6a3db8;
+
+  /* 页面背景渐变 */
+  --bg-gradient: linear-gradient(165deg, #f0eeff 0%, #e8ecff 40%, #f0f4ff 100%);
+
+  /* 侧边栏 */
+  --sidebar-bg:    #ffffff;
+  --sidebar-border: rgba(209, 196, 233, 1);
+
+  /* 文字层级 */
+  --ink:   rgba(0,0,0,0.85);
+  --ink2:  rgba(0,0,0,0.65);
+  --ink3:  rgba(128,128,128,1);
+  --ink4:  rgba(166,166,166,1);
+
+  /* 用户消息气泡 */
+  --user-bg:  #ede7f6;
+  --user-bdr: #9575cd;
+  --user-ink: #4a148c;
+
+  /* 边框 */
+  --border: rgba(209,196,233,1);
+
+  /* 卡片阴影 */
+  --sh-card: 0px 2px 6px 2px rgba(126,87,194,0.18);
+  --sh-card-lg: 0px 4px 6px 2px rgba(126,87,194,0.25);
+}
+
+/* ── Global Reset & Body ──────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  /* 防止横向溢出导致页面飘移 */
+  max-width: 100vw;
+  overflow-x: hidden;
+  /* 禁用 iOS 文字自动缩放 */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  /* v1 同款字体栈 */
+  font-family: 'PingFang SC', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+               'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--ink);
+  /* 整体页面背景渐变 */
+  background: var(--bg-gradient);
+}
+
+/* ── iOS Safari 防输入框缩放：font-size < 16px 会触发自动放大视口 ── */
+@media (max-width: 768px) {
+  input, textarea, select {
+    font-size: 16px !important;
+    /* 防止 transform 影响滚动容器宽度 */
+    max-width: 100%;
+  }
+}
+
+/* ── Custom Scrollbar ── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: var(--ink3); }
+
+/* ── Ant Design 全局覆盖 · 品牌色对齐 ────────────────────────────── */
+.ant-layout {
+  background: transparent !important;
+}
+
+/* 确保 antd message 提示高于所有自定义模态层 (zIndex: 99999) */
+.ant-message {
+  z-index: 999999 !important;
+}
+
+.ant-menu {
+  background: transparent !important;
+}
+
+/* 将 Ant Design primary 全部覆盖为 #7e57c2 */
+.ant-btn-primary,
+.ant-btn-primary:not(:disabled):hover {
+  background-color: var(--primary) !important;
+  border-color: var(--primary) !important;
+}
+
+.ant-menu-item-selected,
+.ant-menu-item-selected:hover {
+  background-color: var(--primary-light) !important;
+  color: var(--primary) !important;
+}
+
+.ant-menu-item-selected .ant-menu-item-icon,
+.ant-menu-item-selected .anticon {
+  color: var(--primary) !important;
+}
+
+.ant-tabs-ink-bar {
+  background: var(--primary) !important;
+}
+
+.ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: var(--primary) !important;
+}
+
+.ant-tabs-tab:hover {
+  color: var(--primary) !important;
+}
+
+.ant-tag {
+  border-radius: 6px !important;
+}
+
+/* 选中态的 Badge / Dot 也统一为品牌色 */
+.ant-badge-status-processing {
+  background-color: var(--primary) !important;
+}
+
+/* ── 页面主背景（覆盖 slate-50）────────────────────────────────────── */
+.zhiji-page-bg {
+  background: var(--bg-gradient) !important;
+}
+
+/* ── 聊天页面 Gemini 风格 ────────────────────────────────────────── */
+/* AI 消息：全宽展示，无气泡边框 */
+.chat-msg-ai {
+  background: transparent;
+  border: none;
+  padding: 0;
+  max-width: 100%;
+}
+
+/* 用户消息：品牌紫色气泡 */
+.chat-msg-user {
+  background: var(--user-bg);
+  color: var(--user-ink);
+  border: 1px solid var(--user-bdr);
+  border-radius: 18px 18px 4px 18px;
+}
+
+/* 输入框聚焦时品牌色描边 */
+.chat-input-wrap:focus-within {
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 2px var(--primary-light) !important;
+}
+
+/* ── 知己广场桌面端 Tab 按钮 hover 效果 ──────────────────────────── */
+.cso-top-tab:hover {
+  color: rgba(126, 87, 194, 0.8) !important;
+}
+
+/* ── 专题列表卡片（桌面 + 移动端共用，媒体查询覆盖移动端）──────────── */
+.cso-theme-list-card {
+  display: flex;
+  background: #fff;
+  border-radius: 20px;
+  padding: 16px;
+  align-items: center;
+  gap: 24px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+  border: 1px solid rgba(224,228,242,0.6);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  text-decoration: none;
+  color: inherit;
+}
+.cso-theme-list-card:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.08); transform: translateY(-1px); }
+
+/* 图片区 */
+.cso-tlc-img { width: 200px; height: 120px; border-radius: 14px; overflow: hidden; flex-shrink: 0; background: #f8f9fa; }
+.cso-tlc-img img { width: 100%; height: 100%; object-fit: cover; }
+
+/* 内容区 */
+.cso-tlc-content { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+
+/* 标题行 */
+.cso-tlc-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.cso-tlc-title { font-size: 22px; font-weight: 700; color: #1a1a2e; }
+
+/* 知己数量徽章 */
+.cso-tlc-count {
+  font-size: 14px; font-weight: 500; color: #7e57c2;
+  background: rgba(126,87,194,0.10); padding: 4px 10px; border-radius: 20px;
+}
+
+/* 描述 */
+.cso-tlc-desc {
+  font-size: 15px; color: #666; line-height: 1.6;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+
+/* 右侧箭头 */
+.cso-tlc-action {
+  width: 40px; height: 40px; border-radius: 50%; background: #f0f3ff;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  transition: background 0.2s;
+}
+.cso-theme-list-card:hover .cso-tlc-action { background: #7e57c2; }
+.cso-theme-list-card:hover .cso-tlc-action svg { stroke: #fff; }
+
+.mob-bottom-nav, .mob-only-menu-btn {
+  display: none !important;
+}
+
+/* ── 移动端覆盖 ──────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  nav.mob-bottom-nav {
+    display: flex !important;
+  }
+  div.mob-bottom-nav {
+    display: block !important;
+  }
+  button.mob-only-menu-btn {
+    display: flex !important;
+  }
+  /* 手机端隐藏顶部 Header（汉堡 + 标题 + 用户卡片） */
+  .mob-hide-header {
+    display: none !important;
+  }
+  .cso-theme-list-card {
+    flex-direction: row; align-items: flex-start;
+    gap: 16px; padding: 14px; border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  }
+  .cso-tlc-img { width: 80px; height: 80px; border-radius: 10px; }
+  .cso-tlc-content { justify-content: flex-start; }
+  .cso-tlc-header { flex-direction: column; align-items: flex-start; gap: 6px; margin-bottom: 8px; }
+  .cso-tlc-title { font-size: 18px; }
+  .cso-tlc-count { font-size: 12px; padding: 2px 8px; }
+  .cso-tlc-desc { font-size: 13px; color: #64748b; line-height: 1.5; }
+  .cso-tlc-action { display: none; }
+}
+
+.sb-nav-item {
+  border-radius: 20px;
+  background: linear-gradient(180deg, rgba(235,238,250,0.8) 0%, rgba(251,251,253,0.8) 100%);
+  box-shadow: 0 2px 6px 2px rgba(156,142,191,0.18);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  padding: 12px 10px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border: none;
+  text-align: left;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.sb-nav-item::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 20px;
+  padding: 1px;
+  background: linear-gradient(145deg, rgba(255,255,255,0.7), rgba(200,195,255,0.2));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+.sb-nav-item:active {
+  transform: scale(0.97);
+  box-shadow: 0 1px 4px rgba(156,142,191,0.12);
+}
+
+/* 图标圆角方块 */
+.sb-nav-ico {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(100,86,245,0.18), rgba(140,130,255,0.12));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+/* 文字区（名称 + 副标题） */
+.sb-nav-txt {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.sb-nav-txt-name {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #14151f;
+  line-height: 1.2;
+}
+.sb-nav-txt-sub {
+  font-size: 10.5px;
+  color: #9ca3af;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── 知识库助理侧边栏（AsstPanel）────────────────────────────────── */
+#asst-panel { width: 260px; flex-shrink: 0; background: #fff; border-left: 1px solid var(--border, #eeeef5); display: flex; flex-direction: column; overflow-y: auto; }
+@media (max-width: 900px) { #asst-panel { display: none !important; } }
+
+/* 英雄图区 */
+.asst-hero { width: 100%; flex-shrink: 0; position: relative; overflow: hidden; background: #1a1c30; }
+.asst-hero-img { width: 100%; height: 280px; display: block; object-fit: cover; object-position: top center; }
+.asst-hero-fallback {
+  width: 100%; height: 280px;
+  background: linear-gradient(160deg, #1a1c30 0%, #2d1f4e 60%, #1e3040 100%);
+  align-items: center; justify-content: center; font-size: 70px;
+}
+/* 底部渐变遮罩 */
+.asst-hero::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(to bottom, transparent 45%, rgba(10,10,20,.8) 100%);
+  pointer-events: none;
+}
+.asst-hero-overlay {
+  position: absolute; bottom: 0; left: 0; right: 0; z-index: 1;
+  padding: 12px 14px 10px;
+}
+.aho-name  { font-size: 15px; font-weight: 800; color: #fff; margin-bottom: 3px; }
+.aho-status { display: flex; align-items: center; gap: 5px; font-size: 11px; color: rgba(255,255,255,.65); }
+.aho-dot   { width: 6px; height: 6px; border-radius: 50%; background: #4ade80; box-shadow: 0 0 5px rgba(74,222,128,.5); flex-shrink: 0; }
+
+/* 统计数据行 */
+.asst-stats {
+  display: flex; padding: 10px 14px; gap: 14px;
+  border-bottom: 1px solid var(--border, #eeeef5); flex-shrink: 0;
+}
+.asst-stat-box { text-align: center; flex: 1; }
+.asst-stat-val { font-size: 16px; font-weight: 800; color: #14151f; }
+.asst-stat-lbl { font-size: 10px; color: #9ca3af; margin-top: 1px; }
+
+/* 能力按钮 */
+.asst-abi-btn {
+  width: 100%; display: flex; align-items: center; gap: 10px;
+  padding: 9px 10px; border-radius: 8px; border: none; background: none;
+  cursor: pointer; text-align: left; font-size: 13px; color: #374151;
+  transition: background 0.15s;
+}
+.asst-abi-btn:hover { background: #e8f0fe; }
+
+/* ── 呼吸悬浮动画 (Breathing/Floating) ────────────────────────────────── */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-15px); }
+}
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+/* ── 信源抽屉动画 ────────────────────────────────────────── */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes slideInRight {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+
+body.yida-landing-hide-header #main-layout-header {
+  display: none !important;
+}
