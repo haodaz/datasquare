@@ -8,7 +8,12 @@ const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"]
 
 export const metadata: Metadata = {
   title: "看人才DataSquare",
-  description: "看人才DataSquare · 人才数据检索平台",
+  description: "人才数据，我看看看查查查",
+  openGraph: {
+    title: "看人才-智能人才检索",
+    description: "人才数据，我看看看查查查",
+    siteName: "看人才DataSquare",
+  },
 };
 
 export const viewport = {
