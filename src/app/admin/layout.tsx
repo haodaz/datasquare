@@ -67,7 +67,7 @@ function ModelSwitcher() {
               onMouseLeave={e => { if (currentModel !== m.id) e.currentTarget.style.background = 'transparent'; }}
             >
               <div>{m.label}</div>
-              <div style={{ fontSize: 10, color: '#bbb', marginTop: 1 }}>{m.id}</div>
+              <div style={{ fontSize: 10, color: '#bbb', marginTop: 1 }}>{m.provider} · {m.modelName}</div>
             </div>
           ))}
         </div>
