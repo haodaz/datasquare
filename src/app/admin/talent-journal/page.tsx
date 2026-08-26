@@ -8,6 +8,7 @@ import {
 } from '@ant-design/icons';
 import type { TalentJournalEntry } from '@/lib/mcp/talent-journal-shared';
 import { DATA_SOURCE_LABEL, DATA_SOURCE_COLORS, TRIGGER_TOOL_LABEL, TRIGGER_TOOL_COLORS, formatDataSources } from '@/lib/mcp/talent-journal-shared';
+import { fetchWithAuth } from '@/lib/fetchWithAuth';
 
 const PRIMARY = '#6055f5';
 
@@ -54,7 +55,7 @@ export default function TalentJournalPage() {
       if (search) params.set('search', search);
       if (sortKey) params.set('sort', sortKey);
       if (sortOrder) params.set('sortOrder', sortOrder);
-      const res = await fetch(`/api/admin/talent-journal?${params}`);
+      const res = await fetchWithAuth(`/api/admin/talent-journal?${params}`);
       if (res.ok) {
         const json = await res.json();
         setData(json.items || []);
@@ -70,7 +71,7 @@ export default function TalentJournalPage() {
   const handleTranslate = async (mcpId: number) => {
     setTranslating(true);
     try {
-      const res = await fetch('/api/admin/talent-journal/translate', {
+      const res = await fetchWithAuth('/api/admin/talent-journal/translate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mcpId })
@@ -94,7 +95,7 @@ export default function TalentJournalPage() {
 
   const handleVerify = async (entry: TalentJournalEntry, verified: boolean) => {
     try {
-      await fetch('/api/admin/talent-journal', {
+      await fetchWithAuth('/api/admin/talent-journal', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mcpId: entry._mcp_id, verified }),
@@ -112,7 +113,7 @@ export default function TalentJournalPage() {
       cancelText: '取消',
       okType: 'danger',
       onOk: async () => {
-        await fetch(`/api/admin/talent-journal?id=${entry._mcp_id}`, { method: 'DELETE' });
+        await fetchWithAuth(`/api/admin/talent-journal?id=${entry._mcp_id}`, { method: 'DELETE' });
         message.success('已删除');
         fetchData();
       },
@@ -121,7 +122,7 @@ export default function TalentJournalPage() {
 
   const handleSaveNotes = async () => {
     if (!notesModalEntry) return;
-    await fetch('/api/admin/talent-journal', {
+    await fetchWithAuth('/api/admin/talent-journal', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ mcpId: notesModalEntry._mcp_id, notes: editNotes }),
@@ -169,7 +170,7 @@ export default function TalentJournalPage() {
     }
     console.log('[TalentJournal] handleSaveMerged: sending entry', { talent_name: m.talent_name, id: m.id, hasMcpId: !!m._mcp_id });
     try {
-      const res = await fetch('/api/admin/talent-journal', {
+      const res = await fetchWithAuth('/api/admin/talent-journal', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ entry: m }),
@@ -203,7 +204,7 @@ export default function TalentJournalPage() {
         setDeleting(true);
         try {
           const promises = selectedRowKeys.map(id =>
-            fetch(`/api/admin/talent-journal?id=${id}`, { method: 'DELETE' }).then(res => res.json())
+            fetchWithAuth(`/api/admin/talent-journal?id=${id}`, { method: 'DELETE' }).then(res => res.json())
           );
           await Promise.all(promises);
           message.success('批量删除成功');
