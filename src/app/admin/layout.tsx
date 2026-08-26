@@ -2,9 +2,8 @@
 
 import React from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import {
-  ApiOutlined, DatabaseOutlined
-} from '@ant-design/icons';
+import { ApiOutlined, DatabaseOutlined, LogoutOutlined, UserOutlined } from '@ant-design/icons';
+import { AuthProvider, useAuth } from '@/lib/supabase/auth-context';
 
 const PRIMARY = '#6055f5';
 
@@ -13,9 +12,30 @@ const NAV = [
   { key: 'talent-journal',   icon: <DatabaseOutlined />,    label: '人才日志',     path: '/admin/talent-journal' },
 ];
 
-function AdminLayoutInner({ children }: { children: React.ReactNode }) {
+function AdminLayoutGuard({ children }: { children: React.ReactNode }) {
+  const { user, profile, loading, signOut } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#f5f6fa' }}>
+        <div style={{ fontSize: 14, color: '#999' }}>加载中…</div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    // 未登录，跳转到登录页
+    if (typeof window !== 'undefined') {
+      router.replace('/login');
+    }
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#f5f6fa' }}>
+        <div style={{ fontSize: 14, color: '#999' }}>正在跳转到登录页…</div>
+      </div>
+    );
+  }
 
   const activeKey = NAV.find(n => pathname.startsWith(n.path))?.key || 'tools-tester';
 
@@ -50,6 +70,27 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
             </div>
           ))}
         </div>
+
+        {/* 底部用户信息 */}
+        <div style={{ padding: '12px 16px', borderTop: '1px solid rgba(223,227,245,0.6)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+            <UserOutlined style={{ fontSize: 14, color: PRIMARY }} />
+            <span style={{ fontSize: 12, color: 'rgba(0,0,0,0.65)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+              {profile?.display_name || user.email?.split('@')[0] || '用户'}
+            </span>
+          </div>
+          <div onClick={() => signOut().then(() => router.replace('/login'))}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              padding: '6px 0', cursor: 'pointer', fontSize: 12, color: '#999',
+              transition: 'color 0.15s',
+            }}
+            onMouseEnter={e => (e.currentTarget.style.color = '#dc2626')}
+            onMouseLeave={e => (e.currentTarget.style.color = '#999')}>
+            <LogoutOutlined style={{ fontSize: 13 }} />
+            退出登录
+          </div>
+        </div>
       </div>
 
       {/* 右侧内容区 */}
@@ -62,6 +103,8 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
-    <AdminLayoutInner>{children}</AdminLayoutInner>
+    <AuthProvider>
+      <AdminLayoutGuard>{children}</AdminLayoutGuard>
+    </AuthProvider>
   );
 }
