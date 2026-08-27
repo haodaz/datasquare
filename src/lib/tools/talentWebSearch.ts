@@ -968,13 +968,24 @@ export async function runTalentWebSearchStream(query: string, institution: strin
           if (scholarInsts?.length > 0) {
             scholarInsts.slice(0, 3).forEach((s: any) => clueInsts.push(s.display_name));
           }
+          // 补充 ORCID employments 作为机构线索（ORCID 在 Wiki 之前已完成）
+          const orcidEmps = allGatheredData['orcid']?.employments;
+          if (Array.isArray(orcidEmps)) {
+            orcidEmps.slice(0, 3).forEach((e: any) => { if (e.org) clueInsts.push(e.org); });
+          }
           const uniqueClueInsts = [...new Set(clueInsts.filter(Boolean))];
 
-          sendEvent('log', { step: 'wikipedia', message: `🔍 [第三阶段] 正在检索维基百科 (Wikipedia): ${osintQuery}...` });
+          // 暂存 Wiki 候选，供后续阶段用更多线索重新打分
+          let pendingWikiCandidates: Array<{ pageid: number; title: string; url: string; biography: string; score: number; instScore: number }> = [];
+
+          // 加人才限定词，避免搜到历史人物、文艺角色等不相关同名人
+          const wikiSearchQuery = institution
+            ? `${osintQuery} ${institution}`
+            : `${osintQuery} scholar OR professor OR researcher OR scientist OR engineer OR executive`;
+          sendEvent('log', { step: 'wikipedia', message: `🔍 [第三阶段] 正在检索维基百科 (Wikipedia): ${wikiSearchQuery}...` });
           let foundWiki = false;
           try {
-            // ── 【修复 2】从 srlimit=1 改为 srlimit=5 ──
-            const wikiQueryUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(osintQuery)}&srlimit=5&utf8=&format=json&origin=*`;
+            const wikiQueryUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(wikiSearchQuery)}&srlimit=5&utf8=&format=json&origin=*`;
             const wikiRes = await fetch(wikiQueryUrl);
             if (wikiRes.ok) {
               const wikiData = await wikiRes.json();
@@ -1023,15 +1034,17 @@ export async function runTalentWebSearchStream(query: string, institution: strin
 
                   if (topWiki.instScore > 0) {
                     sendEvent('log', { step: 'wikipedia', message: `✅ 成功提取维基百科词条 (机构匹配 ${topWiki.instScore.toFixed(1)}): ${topWiki.title}` });
+                    allGatheredData['wikipedia'] = {
+                      biography: topWiki.biography,
+                      url: topWiki.url,
+                      _wikiScore: topWiki.instScore,
+                    };
+                    foundWiki = true;
                   } else {
-                    sendEvent('log', { step: 'wikipedia', message: `⚠️ Wikipedia 返回 ${wikiResults.length} 条候选，但无机构匹配，降级用第一条: ${topWiki.title}` });
+                    // 机构匹配分为 0 → 暂存候选，等后续阶段积累更多线索后重新打分
+                    pendingWikiCandidates = wikiScored;
+                    sendEvent('log', { step: 'wikipedia', message: `⚠️ Wikipedia 返回 ${wikiResults.length} 条候选，暂无机构匹配，已暂存等待后续重新验证: ${topWiki.title}` });
                   }
-                  allGatheredData['wikipedia'] = {
-                    biography: topWiki.biography,
-                    url: topWiki.url,
-                    _wikiScore: topWiki.instScore,
-                  };
-                  foundWiki = true;
                 }
               }
             }
@@ -1283,6 +1296,130 @@ ${correctionText.substring(0, 2000)}
               }
             } catch (corrErr) {
               sendEvent('log', { step: 'name_correction', message: `⚠️ 纠错阶段异常: ${corrErr}` });
+            }
+          }
+
+          // ── Wiki 候选延迟重新打分 ──────────────────────────────────────
+          // 如果 Stage 3 时 Wiki 因缺少机构线索暂存了候选，现在用全部已积累的线索重新打分
+          if (pendingWikiCandidates.length > 0 && !allGatheredData['wikipedia']) {
+            const laterClues: string[] = [...uniqueClueInsts];
+            // 补充纠错阶段可能新增的 Scholar 机构
+            const laterScholarInsts = allGatheredData['scholar']?.last_known_institutions;
+            if (laterScholarInsts?.length > 0) {
+              laterScholarInsts.slice(0, 3).forEach((s: any) => { if (s.display_name) laterClues.push(s.display_name); });
+            }
+            // 补充 ORCID 的最新 employments
+            const laterOrcidEmps = allGatheredData['orcid']?.employments;
+            if (Array.isArray(laterOrcidEmps)) {
+              laterOrcidEmps.slice(0, 3).forEach((e: any) => { if (e.org) laterClues.push(e.org); });
+            }
+            // 补充百度百科里可能出现的机构线索
+            const baikeBio = allGatheredData['baike']?.biography || '';
+            const uniqueLaterClues = [...new Set(laterClues.filter(Boolean))];
+
+            if (uniqueLaterClues.length > uniqueClueInsts.length) {
+              // 有新线索了，重新打分
+              sendEvent('log', { step: 'wikipedia', message: `🔄 [延迟验证] 用后续阶段积累的 ${uniqueLaterClues.length} 条机构线索重新验证 Wiki 候选...` });
+              for (const candidate of pendingWikiCandidates) {
+                let newInstScore = 0;
+                for (const clue of uniqueLaterClues) {
+                  if (candidate.biography.toLowerCase().includes(clue.toLowerCase())) {
+                    newInstScore += 1;
+                  } else {
+                    const clueWords = clue.split(/\s+/).filter(ww => ww.length > 2);
+                    const hitWords = clueWords.filter(ww => candidate.biography.toLowerCase().includes(ww.toLowerCase()));
+                    if (hitWords.length > 0) newInstScore += 0.3 * hitWords.length;
+                  }
+                }
+                candidate.instScore = newInstScore;
+                candidate.score = newInstScore;
+              }
+              pendingWikiCandidates.sort((a, b) => b.score - a.score);
+              const retryTop = pendingWikiCandidates[0];
+              if (retryTop.instScore > 0) {
+                sendEvent('log', { step: 'wikipedia', message: `✅ [延迟验证] Wiki 候选通过重新验证 (机构匹配 ${retryTop.instScore.toFixed(1)}): ${retryTop.title}` });
+                allGatheredData['wikipedia'] = {
+                  biography: retryTop.biography,
+                  url: retryTop.url,
+                  _wikiScore: retryTop.instScore,
+                };
+              } else {
+                sendEvent('log', { step: 'wikipedia', message: `⚠️ [延迟验证] 重新打分后仍无机构匹配，最终丢弃 Wiki 候选。` });
+              }
+            } else {
+              sendEvent('log', { step: 'wikipedia', message: `⚠️ [延迟验证] 后续阶段未积累到新的机构线索，最终丢弃 Wiki 候选。` });
+            }
+          }
+
+          // ── ORCID 延迟交叉验证 ──────────────────────────────────────────
+          // ORCID 也可能搜错人（尤其是没有机构线索时取了第一个结果）
+          // 用所有已积累的多源线索做 double check
+          if (allGatheredData['orcid'] && allGatheredData['orcid'].employments) {
+            const orcidData = allGatheredData['orcid'];
+            const orcidOrgs: string[] = (orcidData.employments || []).map((e: any) => e.org).filter(Boolean);
+            const orcidEdus: string[] = (orcidData.educations || []).map((e: any) => e.org).filter(Boolean);
+            const orcidAllOrgs = [...orcidOrgs, ...orcidEdus];
+
+            // 收集所有非 ORCID 来源的机构/人物线索
+            const crossCheckClues: string[] = [];
+            if (institution) crossCheckClues.push(institution);
+            // Scholar 机构
+            const scInsts = allGatheredData['scholar']?.last_known_institutions;
+            if (scInsts?.length > 0) {
+              scInsts.slice(0, 3).forEach((s: any) => { if (s.display_name) crossCheckClues.push(s.display_name); });
+            }
+            // Scholar affiliations 文本
+            if (allGatheredData['scholar']?.affiliations) {
+              crossCheckClues.push(allGatheredData['scholar'].affiliations);
+            }
+            // 百度百科传记（提取可能包含的机构名）
+            const bkBio = allGatheredData['baike']?.biography || '';
+            // Wikipedia 传记
+            const wkBio = allGatheredData['wikipedia']?.biography || '';
+
+            const uniqueCrossClues = [...new Set(crossCheckClues.filter(Boolean))];
+
+            // 交叉验证：ORCID 的 employments/educations 是否和任何其他来源有交集
+            let orcidCrossScore = 0;
+
+            if (uniqueCrossClues.length > 0 && orcidAllOrgs.length > 0) {
+              for (const org of orcidAllOrgs) {
+                for (const clue of uniqueCrossClues) {
+                  // 完整包含
+                  if (org.toLowerCase().includes(clue.toLowerCase()) || clue.toLowerCase().includes(org.toLowerCase())) {
+                    orcidCrossScore += 2;
+                  } else {
+                    // 关键词重叠
+                    const orgWords = org.split(/[\s,]+/).filter(w => w.length > 2);
+                    const clueWords = clue.split(/[\s,]+/).filter(w => w.length > 2);
+                    const overlap = orgWords.filter(w => clueWords.some(c => c.toLowerCase() === w.toLowerCase()));
+                    if (overlap.length > 0) orcidCrossScore += 0.5 * overlap.length;
+                  }
+                }
+              }
+              // 也检查百科传记是否提及 ORCID 的机构
+              for (const org of orcidAllOrgs) {
+                const orgWords = org.split(/[\s,]+/).filter(w => w.length > 3);
+                for (const w of orgWords) {
+                  if (bkBio.toLowerCase().includes(w.toLowerCase())) { orcidCrossScore += 0.3; break; }
+                  if (wkBio.toLowerCase().includes(w.toLowerCase())) { orcidCrossScore += 0.3; break; }
+                }
+              }
+            }
+
+            if (orcidCrossScore > 0) {
+              sendEvent('log', { step: 'orcid', message: `✅ [延迟验证] ORCID 交叉验证通过 (匹配度 ${orcidCrossScore.toFixed(1)})` });
+            } else if (uniqueCrossClues.length > 0 || bkBio.length > 50 || wkBio.length > 50) {
+              // 有其他来源的线索但 ORCID 完全不匹配 → 大概率搜错人了
+              sendEvent('log', { step: 'orcid', message: `⚠️ [延迟验证] ORCID 与其他数据源零交叉，大概率搜错人，已丢弃: ${orcidData.orcid_id}` });
+              delete allGatheredData['orcid'];
+              // 重新评估置信度
+              if (pfConfidence === 'high' && !allGatheredData['scholar']) {
+                pfConfidence = 'low';
+              }
+            } else {
+              // 没有其他来源可以交叉验证，保留但标记
+              sendEvent('log', { step: 'orcid', message: `🟡 [延迟验证] 无其他来源可交叉验证 ORCID，暂时保留` });
             }
           }
 

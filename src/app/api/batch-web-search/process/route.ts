@@ -121,6 +121,37 @@ async function processOneTask(task: any, batch_id: number) {
   let aiReport = '';
   let rawData: Record<string, any> | null = null;
 
+  // 增量写入节流：每 2 秒最多写一次数据库，让前端轮询能看到实时进度
+  let lastFlushTime = 0;
+  let flushTimer: ReturnType<typeof setTimeout> | null = null;
+  let needsFlush = false;
+
+  const flushToDB = async () => {
+    try {
+      await supabase.from('batch_search_tasks').update({
+        logs: JSON.stringify(logs),
+        ai_report: aiReport,
+      }).eq('id', task.id);
+      lastFlushTime = Date.now();
+      needsFlush = false;
+    } catch { /* ignore flush errors */ }
+  };
+
+  const scheduleFlush = () => {
+    needsFlush = true;
+    const elapsed = Date.now() - lastFlushTime;
+    if (elapsed >= 2000) {
+      // 距离上次写入超过 2 秒，立即写
+      flushToDB();
+    } else if (!flushTimer) {
+      // 排队等到 2 秒间隔后写
+      flushTimer = setTimeout(() => {
+        flushTimer = null;
+        if (needsFlush) flushToDB();
+      }, 2000 - elapsed);
+    }
+  };
+
   try {
     console.log(`[BatchSearch] 开始: task=${task.id}, name="${task.talent_name}"`);
 
@@ -147,14 +178,19 @@ async function processOneTask(task: any, batch_id: number) {
           const data = JSON.parse(line.substring(6));
           if (data.type === 'log') {
             logs.push({ step: data.data.step, message: data.data.message });
+            scheduleFlush();
           } else if (data.type === 'ai_chunk') {
             aiReport += (typeof data.data === 'string' ? data.data : '');
+            scheduleFlush();
           } else if (data.type === 'raw_data') {
             rawData = data.data;
           }
         } catch { /* ignore */ }
       }
     }
+
+    // 清理定时器
+    if (flushTimer) { clearTimeout(flushTimer); flushTimer = null; }
 
     // 保存到人才日志
     if (rawData?.gatheredData) {
@@ -172,7 +208,7 @@ async function processOneTask(task: any, batch_id: number) {
       }
     }
 
-    // 标记完成
+    // 标记完成（最终写入完整数据）
     await supabase.from('batch_search_tasks').update({
       status: 'done',
       logs: JSON.stringify(logs),
@@ -183,6 +219,7 @@ async function processOneTask(task: any, batch_id: number) {
     console.log(`[BatchSearch] 完成: task=${task.id}, name="${task.talent_name}", report=${aiReport.length}字`);
 
   } catch (taskErr: any) {
+    if (flushTimer) { clearTimeout(flushTimer); flushTimer = null; }
     console.error(`[BatchSearch] 任务失败: task=${task.id}`, taskErr);
     await supabase.from('batch_search_tasks').update({
       status: 'failed',
@@ -192,3 +229,4 @@ async function processOneTask(task: any, batch_id: number) {
     }).eq('id', task.id);
   }
 }
+
