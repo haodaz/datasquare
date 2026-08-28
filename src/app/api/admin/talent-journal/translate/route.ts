@@ -54,62 +54,48 @@ ORCID ID: ${profile?.orcid_id || ''}
 ${sourceData.map((sd: any) => `--- ${sd.source_key} 原始数据 ---\n${JSON.stringify(sd.raw_data || {}, null, 2).substring(0, 1500)}`).join('\n\n')}
 `;
 
-    // 3. 构造 Prompt — 结构化输出，教育/工作经历为 list
+    // 3. 构造 Prompt — 结构化输出，严格对齐 Excel 字段
     const prompt = `你是一个专业的人才数据提取助手。请根据下方提供的人才源信息，提取并输出标准的结构化 JSON 数据。
 
 要求：
 1. 必须输出合法的 JSON，不要输出任何 Markdown 标记。
-2. JSON 必须且只能包含以下 Key。如果源信息中没有对应内容，字符串填 ""，数组填 []，数字填 null：
+2. JSON 必须且只能包含以下 Key。如果源信息中没有对应内容，字符串填 ""，数字填 null。
+3. 请将所有经历（如工作、教育、获奖）转换成简单的长文本格式，各段经历之间用分号 ";" 分隔。
 
 {
-  "name_cn": "中文名",
-  "name_en": "英文名（拼音或英文原名）",
-  "gender": "性别（男/女/未知）",
+  "first_name": "First Name (英文名名)",
+  "last_name": "Last Name (英文名姓)",
+  "name": "姓名 - 中文",
+  "name_en": "姓名 - 英文",
+  "gender": "性别 (男/女)",
+  "birth_date": "出生日期 (YYYY-MM-DD)",
   "nationality": "国籍",
-  "orcid_id": "ORCID ID (格式 0000-0000-0000-0000)",
-  "h_index": null,
-  "institution": "当前所属机构（大学/公司名）",
-  "position": "职称/职位（如教授、研究员等）",
-  "department": "所属院系/部门",
-  "research_fields": ["研究领域1", "研究领域2"],
-  "email": "联系邮箱",
-  "homepage_url": "个人主页链接",
-  "bio_summary": "人物简介（100-200字精炼概括）",
-  "education": [
-    {
-      "degree": "学位（博士/硕士/本科）",
-      "school": "学校名称",
-      "school_en": "学校英文名",
-      "major": "专业",
-      "start_year": null,
-      "end_year": null
-    }
-  ],
-  "work_history": [
-    {
-      "employer": "雇主/单位名称",
-      "employer_en": "单位英文名",
-      "position": "职位",
-      "department": "部门",
-      "start_year": null,
-      "end_year": null,
-      "is_current": false
-    }
-  ],
-  "awards": ["获奖1", "获奖2"],
-  "other_info": "其他重要信息（荣誉、专利、社会职务等，以文本形式汇总）"
+  "is_chinese": "是否华裔 (是/否)",
+  "province": "籍贯 (省份)",
+  "email": "电子邮箱",
+  "brid": "BRID (基础研究科研人员标识)",
+  "orcid": "ORCID",
+  "researcher_id": "ResearcherID",
+  "profile_link": "人才主页链接",
+  "introduction": "简介 (一段精炼的个人介绍文本)",
+  "research_field": "研究领域 / 突出贡献 (文本)",
+  "bachelor_duration": "本科阶段时间 (开始年份-结束年份)",
+  "bachelor_school": "本科院校",
+  "bachelor_major": "本科专业",
+  "master_duration": "硕士阶段时间",
+  "master_school": "硕士院校",
+  "master_major": "硕士专业",
+  "phd_duration": "博士阶段时间",
+  "phd_school": "博士院校",
+  "phd_major": "博士专业",
+  "work_current": "当前工作经历 (开始时间，单位名称，任职岗位)",
+  "work_experiences": "过往工作经历 (每段返回：开始时间-结束时间，单位名称，任职岗位，工作内容。多段用;分隔)",
+  "award_experiences": "获奖经历 (时间，奖项名称。多段用;分隔)"
 }
-
-注意：
-- education 和 work_history 必须是数组，每条经历是一个对象
-- 按时间倒序排列（最近的在前）
-- start_year / end_year 是整数年份，未知填 null
-- is_current 标记是否为当前职位
-- bio_summary 请从 AI 报告和百科中提炼，不要直接复制，200字以内精准概括
 
 【人才源信息】：
 ${sourceInfo}
-`;
+\`;
 
     // 4. 调用 AI
     const deepseekKey = process.env.DASHSCOPE_API_KEY;
@@ -155,36 +141,15 @@ ${sourceInfo}
       updated_at: new Date().toISOString(),
     };
 
-    // 直接映射字段
-    if (structured_data.name_cn) profileUpdate.name_cn = structured_data.name_cn;
+    // 不再深度映射各个独立列（因为日志库不是最终库，结构化数据全部存进 structured_data JSONB 中）
+    // 但保留基础标识列的更新，比如 ORCID、name_en 方便在日志列表展示
+    if (structured_data.name) profileUpdate.name_cn = structured_data.name;
     if (structured_data.name_en) profileUpdate.name_en = structured_data.name_en;
     if (structured_data.gender) profileUpdate.gender = structured_data.gender;
-    if (structured_data.nationality) profileUpdate.nationality = structured_data.nationality;
-    if (structured_data.orcid_id) profileUpdate.orcid_id = structured_data.orcid_id;
-    if (structured_data.h_index) profileUpdate.h_index = structured_data.h_index;
-    if (structured_data.institution) profileUpdate.current_employer = structured_data.institution;
-    if (structured_data.position) profileUpdate.position = structured_data.position;
-    if (structured_data.department) profileUpdate.department = structured_data.department;
+    if (structured_data.orcid) profileUpdate.orcid_id = structured_data.orcid;
     if (structured_data.email) profileUpdate.email = structured_data.email;
-    if (structured_data.homepage_url) profileUpdate.homepage_url = structured_data.homepage_url;
-    if (structured_data.bio_summary) profileUpdate.bio_snippet = structured_data.bio_summary;
-    if (structured_data.other_info) profileUpdate.other_info = structured_data.other_info;
-
-    // 数组字段
-    if (Array.isArray(structured_data.research_fields) && structured_data.research_fields.length > 0) {
-      profileUpdate.research_fields = structured_data.research_fields;
-    }
-    if (Array.isArray(structured_data.awards) && structured_data.awards.length > 0) {
-      profileUpdate.awards = JSON.stringify(structured_data.awards);
-    }
-
-    // 子实体（以 JSONB 形式存储）
-    if (Array.isArray(structured_data.education) && structured_data.education.length > 0) {
-      profileUpdate.education_raw = JSON.stringify(structured_data.education);
-    }
-    if (Array.isArray(structured_data.work_history) && structured_data.work_history.length > 0) {
-      profileUpdate.work_history = JSON.stringify(structured_data.work_history);
-    }
+    if (structured_data.profile_link) profileUpdate.homepage_url = structured_data.profile_link;
+    if (structured_data.introduction) profileUpdate.bio_snippet = structured_data.introduction;
 
     const { error: profileErr } = await supabase
       .from('talent_profiles')

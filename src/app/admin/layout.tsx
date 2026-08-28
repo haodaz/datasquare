@@ -11,6 +11,7 @@ const PRIMARY = '#6055f5';
 const NAV = [
   { key: 'tools-tester',     icon: <ApiOutlined />,         label: '应用测试台',   path: '/admin/tools-tester' },
   { key: 'talent-journal',   icon: <DatabaseOutlined />,    label: '人才日志',     path: '/admin/talent-journal' },
+  { key: 'talent-db',        icon: <UserOutlined />,        label: '人才实体库',   path: '/admin/talent-db' },
 ];
 
 /* ── 模型切换下拉 ── */

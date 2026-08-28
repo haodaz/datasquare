@@ -43,6 +43,7 @@ export default function TalentJournalPage() {
   // 批量导出：记录当前页勾选的 mcp id
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [selectedRowMap, setSelectedRowMap] = useState<Record<string, TalentJournalEntry>>({});
+  const [importing, setImporting] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -237,6 +238,38 @@ export default function TalentJournalPage() {
   const handleSubmitSearch = () => {
     setSearch(searchInput);
     setPage(1);
+  };
+
+  const handleImportToDb = async () => {
+    if (selectedRowKeys.length === 0) return;
+    
+    // Check if any selected row is not translated
+    const unTranslated = selectedRowKeys.filter(k => !selectedRowMap[k as string]?.structured_data);
+    if (unTranslated.length > 0) {
+      message.warning('存在未转译的记录，请先转译后再导入');
+      return;
+    }
+
+    setImporting(true);
+    try {
+      const res = await fetchWithAuth('/api/admin/talent-db/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mcpIds: selectedRowKeys }),
+      });
+      const json = await res.json();
+      if (json.ok) {
+        message.success(`成功导入 ${json.importedCount} 条记录到人才实体库！`);
+        setSelectedRowKeys([]);
+        setSelectedRowMap({});
+      } else {
+        message.error(json.error || '导入失败');
+      }
+    } catch (e: any) {
+      message.error('导入出错，请重试');
+    } finally {
+      setImporting(false);
+    }
   };
 
   const columns = [
