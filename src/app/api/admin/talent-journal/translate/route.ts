@@ -95,7 +95,7 @@ ${sourceData.map((sd: any) => `--- ${sd.source_key} 原始数据 ---\n${JSON.str
 
 【人才源信息】：
 ${sourceInfo}
-\`;
+`;
 
     // 4. 调用 AI
     const deepseekKey = process.env.DASHSCOPE_API_KEY;
