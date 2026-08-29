@@ -141,6 +141,7 @@ ${sourceInfo}
     const profileUpdate: Record<string, any> = {
       talent_entry_id: Number(mcpId),
       updated_at: new Date().toISOString(),
+      structured_data,
     };
 
     // 不再深度映射各个独立列（因为日志库不是最终库，结构化数据全部存进 structured_data JSONB 中）

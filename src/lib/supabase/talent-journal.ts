@@ -294,37 +294,42 @@ class TalentJournalManagerSupabase {
   }
 
   /** 保存 AI 转译后的结构化数据到 talent_profiles */
-  private async upsertStructuredData(entryId: number, structuredData: Record<string, any>) {
-    // 映射 structured_data 的中文 key 到 talent_profiles 列名
-    const mapping: Record<string, string> = {
-      '姓名': 'name_cn', '英文名': 'name_en', '性别': 'gender',
-      '联系邮箱': 'email', '出生日期': 'birth_date', '国籍': 'nationality',
-      '本科院校': 'undergrad_school', '本科专业': 'undergrad_major',
-      '硕士院校': 'masters_school', '硕士专业': 'masters_major',
-      '博士院校': 'phd_school', '博士专业': 'phd_major',
-      '教育背景': 'education_raw', '现任机构': 'current_employer',
-      '所在院系': 'department', '所在国家': 'country',
-      '现任职务': 'position', '职称': 'title',
-      '工作经历': 'work_history', '所获奖项': 'awards',
-      '主要研究领域': 'research_fields_text',
-      'H-Index': 'h_index_text', 'ORCID ID': 'orcid_id',
-      '人才主页链接': 'homepage_url', '简介': 'bio_snippet',
-      '其他': 'other_info',
-    };
-
+  private async upsertStructuredData(entryId: number, updates: any): Promise<void> {
+    const { structured_data, db_entity_id } = updates;
     const profileRow: Record<string, any> = { talent_entry_id: entryId, updated_at: new Date().toISOString() };
-    for (const [zhKey, enCol] of Object.entries(mapping)) {
-      if (structuredData[zhKey] !== undefined && structuredData[zhKey] !== null) {
-        if (enCol === 'h_index_text') {
-          profileRow.h_index = parseInt(structuredData[zhKey], 10) || null;
-        } else if (enCol === 'research_fields_text') {
-          const val = structuredData[zhKey];
-          profileRow.research_fields = typeof val === 'string' ? val.split(/[,;，；、]/).map((s: string) => s.trim()).filter(Boolean) : (Array.isArray(val) ? val : []);
-        } else {
-          profileRow[enCol] = structuredData[zhKey];
+    
+    if (structured_data) {
+        // 映射 structured_data 的中文 key 到 talent_profiles 列名
+        const mapping: Record<string, string> = {
+          '姓名': 'name_cn', '英文名': 'name_en', '性别': 'gender',
+          '联系邮箱': 'email', '出生日期': 'birth_date', '国籍': 'nationality',
+          '本科院校': 'undergrad_school', '本科专业': 'undergrad_major',
+          '硕士院校': 'masters_school', '硕士专业': 'masters_major',
+          '博士院校': 'phd_school', '博士专业': 'phd_major',
+          '教育背景': 'education_raw', '现任机构': 'current_employer',
+          '所在院系': 'department', '所在国家': 'country',
+          '现任职务': 'position', '职称': 'title',
+          '工作经历': 'work_history', '所获奖项': 'awards',
+          '主要研究领域': 'research_fields_text',
+          'H-Index': 'h_index_text', 'ORCID ID': 'orcid_id',
+          '人才主页链接': 'homepage_url', '简介': 'bio_snippet',
+          '其他': 'other_info',
+        };
+
+        for (const [zhKey, enCol] of Object.entries(mapping)) {
+          if (structured_data[zhKey] !== undefined && structured_data[zhKey] !== null) {
+            if (enCol === 'h_index_text') {
+              profileRow.h_index = parseInt(structured_data[zhKey], 10) || null;
+            } else if (enCol === 'research_fields_text') {
+              const val = structured_data[zhKey];
+              profileRow.research_fields = typeof val === 'string' ? val.split(/[,;，；、]/).map((s: string) => s.trim()).filter(Boolean) : (Array.isArray(val) ? val : []);
+            } else {
+              profileRow[enCol] = structured_data[zhKey];
+            }
+          }
         }
-      }
     }
+    if (db_entity_id !== undefined) profileRow.db_entity_id = db_entity_id;
 
     const { error } = await supabase
       .from('talent_profiles')
@@ -350,7 +355,7 @@ class TalentJournalManagerSupabase {
 
     let query = supabase
       .from('talent_entries')
-      .select('*, talent_profiles(*), talent_source_data(*)', { count: 'exact' });
+      .select('*, talent_profiles(pingfang_id, h_index, cited_by_count, works_count, current_employer, research_fields, bio_snippet, orcid_id, db_entity_id), talent_source_data(*)', { count: 'exact' });
 
     if (opts.search) {
       query = query.or(`talent_name.ilike.%${opts.search}%,institution.ilike.%${opts.search}%`);
@@ -412,6 +417,8 @@ class TalentJournalManagerSupabase {
         Object.entries(profile).filter(([k]) => !['id', 'talent_entry_id', 'parsed_at', 'parsed_by', 'updated_at', 'field_provenance'].includes(k))
       ) : undefined,
       _mcp_id: row.id, // 复用 _mcp_id 字段存 Supabase id，前端兼容
+      imported_to_db: row.imported_to_db || false,
+      db_entity_id: profile.db_entity_id,
     };
   }
 
@@ -431,6 +438,10 @@ class TalentJournalManagerSupabase {
     if (updates.notes !== undefined) {
       updateObj.notes = updates.notes;
     }
+    // We only update verified and notes here. imported_to_db is managed separately or we can add it here.
+    if ('imported_to_db' in updates && updates.imported_to_db !== undefined) {
+      updateObj.imported_to_db = updates.imported_to_db;
+    }
 
     const { error } = await supabase
       .from('talent_entries')
@@ -443,8 +454,12 @@ class TalentJournalManagerSupabase {
     }
 
     // 更新 structured_data → talent_profiles
-    if (updates.structured_data) {
-      await this.upsertStructuredData(entryId, updates.structured_data);
+    if (updates.structured_data || 'db_entity_id' in updates) {
+      const profileUpdates: any = updates.structured_data ? { structured_data: updates.structured_data } : {};
+      if ('db_entity_id' in updates) {
+        profileUpdates.db_entity_id = (updates as any).db_entity_id;
+      }
+      await this.upsertStructuredData(entryId, profileUpdates);
     }
 
     console.log(`[TalentJournal/SB] updateEntry OK id=${entryId}`);

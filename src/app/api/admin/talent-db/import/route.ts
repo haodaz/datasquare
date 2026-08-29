@@ -68,14 +68,27 @@ export async function POST(request: Request) {
     });
 
     // 3. 批量插入到独立的人才实体库表 'talent_db_entities'
-    const { error: insertErr } = await supabase
+    const { data: insertedRows, error: insertErr } = await supabase
       .from('talent_db_entities')
-      .insert(entitiesToInsert);
+      .insert(entitiesToInsert)
+      .select('id, source_journal_id');
 
     if (insertErr) {
       console.error('插入实体库失败:', insertErr);
-      // NOTE: 如果表不存在，这里会报错。请确保在 Supabase 创建了 talent_db_entities 表
       return NextResponse.json({ error: '插入实体库失败。请确认数据库中已创建 talent_db_entities 表。' }, { status: 500 });
+    }
+
+    // 4. 更新关联表状态
+    if (insertedRows && insertedRows.length > 0) {
+      const entryIds = insertedRows.map(r => r.source_journal_id).filter(Boolean);
+      if (entryIds.length > 0) {
+        await supabase.from('talent_entries').update({ imported_to_db: true }).in('id', entryIds);
+      }
+      for (const row of insertedRows) {
+        if (row.source_journal_id) {
+          await supabase.from('talent_profiles').update({ db_entity_id: row.id }).eq('talent_entry_id', row.source_journal_id);
+        }
+      }
     }
 
     return NextResponse.json({ ok: true, importedCount: entitiesToInsert.length });

@@ -289,6 +289,7 @@ export default function TalentJournalPage() {
         message.success(`成功导入 ${json.importedCount} 条记录到人才实体库！`);
         setSelectedRowKeys([]);
         setSelectedRowMap({});
+        fetchData();
       } else {
         message.error(json.error || '导入失败');
       }
@@ -496,6 +497,30 @@ export default function TalentJournalPage() {
       render: (_: any, record: TalentJournalEntry) => isValidTranslated(record.structured_data) 
         ? <Tag color="processing">已转译</Tag>
         : <Tag color="default">未转译</Tag>,
+    },
+    {
+      title: '入库状态',
+      key: 'imported',
+      width: 100,
+      filters: [
+        { text: '已入库', value: true },
+        { text: '未入库', value: false },
+      ],
+      onFilter: (value, record) => !!record.imported_to_db === value,
+      render: (_: any, record: TalentJournalEntry) => record.imported_to_db ? (
+        <Tooltip title="点击前往人才库查看">
+          <Tag 
+            color="success" 
+            style={{ cursor: 'pointer' }}
+            onClick={() => {
+              if (record.db_entity_id) router.push(`/admin/talent-db/${record.db_entity_id}`);
+              else router.push(`/admin/talent-db?search=${encodeURIComponent(record.talent_name)}`);
+            }}
+          >
+            已入库
+          </Tag>
+        </Tooltip>
+      ) : <Tag color="default">未入库</Tag>,
     },
     {
       title: '操作',

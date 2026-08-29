@@ -39,6 +39,8 @@ export interface TalentJournalEntry {
   verified: boolean;
   verified_at?: string;
   notes?: string;
+  imported_to_db?: boolean;
+  db_entity_id?: number;
 
   // 内部 ID（来自 MCP 记录）
   _mcp_id?: number;
