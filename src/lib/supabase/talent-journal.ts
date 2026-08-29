@@ -355,7 +355,7 @@ class TalentJournalManagerSupabase {
 
     let query = supabase
       .from('talent_entries')
-      .select('*, talent_profiles(pingfang_id, h_index, cited_by_count, works_count, current_employer, research_fields, bio_snippet, orcid_id, db_entity_id), talent_source_data(*)', { count: 'exact' });
+      .select('*, talent_profiles(*), talent_source_data(*)', { count: 'exact' });
 
     if (opts.search) {
       query = query.or(`talent_name.ilike.%${opts.search}%,institution.ilike.%${opts.search}%`);
