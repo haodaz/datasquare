@@ -1,11 +1,12 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Table, Input, Button, Tag, Space, Modal, Drawer, Checkbox, message, Tooltip, Select, Dropdown } from 'antd';
+import { Table, Input, Button, Tag, Space, Modal, Drawer, message, Tooltip, Select, Dropdown, Progress } from 'antd';
 import {
   SearchOutlined, DownloadOutlined, ReloadOutlined, CheckCircleOutlined,
-  DeleteOutlined, EyeOutlined, EditOutlined, DatabaseOutlined, NodeIndexOutlined,
+  DeleteOutlined, EyeOutlined, EditOutlined, DatabaseOutlined, NodeIndexOutlined, SyncOutlined,
 } from '@ant-design/icons';
+import { useRouter } from 'next/navigation';
 import { useModel } from '@/lib/model-context';
 import type { TalentJournalEntry } from '@/lib/mcp/talent-journal-shared';
 import { DATA_SOURCE_LABEL, DATA_SOURCE_COLORS, TRIGGER_TOOL_LABEL, TRIGGER_TOOL_COLORS, formatDataSources } from '@/lib/mcp/talent-journal-shared';
