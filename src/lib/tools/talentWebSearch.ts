@@ -17,6 +17,7 @@ function getOpenAIClient(modelId?: string) {
       baseURL: config.baseURL
     }),
     modelName: config.modelName,
+    supportsJsonMode: config.supportsJsonMode,
   };
 }
 
@@ -625,12 +626,14 @@ export async function runTalentWebSearchStream(query: string, institution: strin
             const strategyRes = await thinkClient.client.chat.completions.create({
               model: thinkClient.modelName,
               messages: [{ role: 'user', content: strategyPrompt }],
-              response_format: { type: 'json_object' }
+              ...(thinkClient.supportsJsonMode ? { response_format: { type: 'json_object' } as any } : {})
             });
-            searchStrategy = JSON.parse(strategyRes.choices[0]?.message?.content || '{}');
+            const strategyContent = strategyRes.choices[0]?.message?.content || '{}';
+            const cleanContent = strategyContent.replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/i, '').trim();
+            searchStrategy = JSON.parse(cleanContent);
             sendEvent('log', { step: 'stage0', message: `✅ [预检规划] 策略制定完毕。判定英文名: ${searchStrategy.english_name || '未知'}，领域: ${(searchStrategy.research_fields || []).join(', ')}。` });
-          } catch (e) {
-            sendEvent('log', { step: 'stage0', message: `⚠️ [预检规划] 策略制定失败，将降级为常规工程搜索策略。` });
+          } catch (e: any) {
+            sendEvent('log', { step: 'stage0', message: `⚠️ [预检规划] 策略制定失败 (${e.message})，将降级为常规工程搜索策略。` });
           }
 
           // Stage 1: Scholar (原第二阶段，现为第一步)
@@ -1523,9 +1526,11 @@ ${JSON.stringify(allGatheredData, null, 2).substring(0, 30000)}
             const diagRes = await aiClient.client.chat.completions.create({
               model: aiClient.modelName,
               messages: [{ role: 'user', content: diagnosticPrompt }],
-              response_format: { type: 'json_object' }
+              ...(aiClient.supportsJsonMode ? { response_format: { type: 'json_object' } as any } : {})
             });
-            const diagResult = JSON.parse(diagRes.choices[0]?.message?.content || '{}');
+            const diagContent = diagRes.choices[0]?.message?.content || '{}';
+            const cleanDiagContent = diagContent.replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/i, '').trim();
+            const diagResult = JSON.parse(cleanDiagContent);
             gapQueries = diagResult.search_queries || [];
             missingFields = diagResult.missing_fields || [];
           } catch (e) {
@@ -1557,9 +1562,11 @@ ${JSON.stringify(gapResults, null, 2).substring(0, 20000)}
                 const extRes = await aiClient.client.chat.completions.create({
                   model: aiClient.modelName,
                   messages: [{ role: 'user', content: extractPrompt }],
-                  response_format: { type: 'json_object' }
+                  ...(aiClient.supportsJsonMode ? { response_format: { type: 'json_object' } as any } : {})
                 });
-                const extData = JSON.parse(extRes.choices[0]?.message?.content || '{}');
+                const extContent = extRes.choices[0]?.message?.content || '{}';
+                const cleanExtContent = extContent.replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/i, '').trim();
+                const extData = JSON.parse(cleanExtContent);
                 if (Object.keys(extData).length > 0) {
                   allGatheredData['targeted_supplements'] = extData;
                   sendEvent('log', { step: 'gap_filling', message: `✅ [定向突破] 成功提取到补充数据！` });
