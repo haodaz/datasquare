@@ -601,15 +601,53 @@ export async function runTalentWebSearchStream(query: string, institution: strin
           const topPingfangRecord: Record<string, any> | null = null; // 兼容后续代码引用
           let pfConfidence: 'high' | 'low' | 'none' = 'none'; // 网络模式下始终为 none
 
+          // ── Stage 0: AI Think (预检策略规划) ──────────────────────────────────────────
+          let searchStrategy: any = null;
+          try {
+            sendEvent('log', { step: 'stage0', message: `🧠 [预检规划] AI 大脑已激活。正在分析 "${searchName}" 的最佳检索策略...` });
+            const thinkClient = getOpenAIClient(modelId);
+            const strategyPrompt = `
+你是一个专业的学术情报检索专家。我需要检索学者 "${searchName}" ${institution ? `(机构: ${institution})` : ''}。
+请利用你的知识储备判断他/她最可能的真实中英文姓名、主要研究领域，并为后续的工具生成专属检索词。
+即使你不太确定（比如是个完全不出名的普通名字），也请给出最合理的推测（比如根据常规习惯给出拼音变体），作为兜底。
+
+请返回严格的 JSON 格式：
+{
+  "thought_process": "你的思考过程，比如吴恩达的英文名是 Andrew Ng，张三是个普通名字所以生成拼音 Zhang San...",
+  "chinese_name": "如果有中文名，请提取",
+  "english_name": "真实的英文名(如 Andrew Ng)或拼音",
+  "research_fields": ["人工智能", "深度学习"],
+  "scholar_queries": ["英文名搜索词1"],
+  "orcid_queries": ["英文名搜索词"],
+  "wiki_queries": ["中文搜索词1", "英文搜索词2"]
+}
+`;
+            const strategyRes = await thinkClient.client.chat.completions.create({
+              model: thinkClient.modelName,
+              messages: [{ role: 'user', content: strategyPrompt }],
+              response_format: { type: 'json_object' }
+            });
+            searchStrategy = JSON.parse(strategyRes.choices[0]?.message?.content || '{}');
+            sendEvent('log', { step: 'stage0', message: `✅ [预检规划] 策略制定完毕。判定英文名: ${searchStrategy.english_name || '未知'}，领域: ${(searchStrategy.research_fields || []).join(', ')}。` });
+          } catch (e) {
+            sendEvent('log', { step: 'stage0', message: `⚠️ [预检规划] 策略制定失败，将降级为常规工程搜索策略。` });
+          }
+
           // Stage 1: Scholar (原第二阶段，现为第一步)
           let topScholarInstScore = 0;
-          let scholarQuery: string = en_name || searchName;
-          // 纯中文时用拼音
-          if (!en_name && isPureChinese) {
-            const pyVars = generatePinyinVariants(searchName);
-            if (pyVars.length > 0) {
-              scholarQuery = pyVars[0]; // Li Feifei 格式
-            }
+          let scholarQuery: string = '';
+          
+          if (searchStrategy && searchStrategy.scholar_queries && searchStrategy.scholar_queries.length > 0) {
+             scholarQuery = searchStrategy.scholar_queries[0];
+          } else {
+             // 兜底策略
+             scholarQuery = en_name || searchName;
+             if (!en_name && isPureChinese) {
+               const pyVars = generatePinyinVariants(searchName);
+               if (pyVars.length > 0) {
+                 scholarQuery = pyVars[0];
+               }
+             }
           }
           sendEvent('log', { step: 'scholar', message: `🔍 [第一阶段] 正在检索 Google Scholar 学术主页: ${scholarQuery}...` });
           const serpApiKey = process.env.SERPAPI_KEY;
@@ -823,6 +861,7 @@ export async function runTalentWebSearchStream(query: string, institution: strin
                   await runOrcidFullSearch(orcidToken, {
                     pfConfidence, orcidInstClue, institution,
                     topPingfangRecord, en_name, searchName, scholarName: allGatheredData['scholar']?.display_name,
+                    searchStrategy
                   }).then(result => {
                     if (result) allGatheredData['orcid'] = result;
                   });
@@ -836,6 +875,7 @@ export async function runTalentWebSearchStream(query: string, institution: strin
                 const result = await runOrcidFullSearch(orcidToken, {
                   pfConfidence, orcidInstClue, institution,
                   topPingfangRecord, en_name, searchName, scholarName: allGatheredData['scholar']?.display_name,
+                  searchStrategy
                 });
                 if (result) allGatheredData['orcid'] = result;
               }
@@ -855,23 +895,30 @@ export async function runTalentWebSearchStream(query: string, institution: strin
               en_name?: string;
               searchName: string;
               scholarName?: string;
+              searchStrategy?: any;
             },
           ): Promise<any> {
-            const { pfConfidence, orcidInstClue, en_name, searchName, scholarName } = ctx;
+            const { pfConfidence, orcidInstClue, en_name, searchName, scholarName, searchStrategy } = ctx;
 
-            // Step 1: 构造 orcidQuery（考虑 pfConfidence）
-            let orcidQuery: string;
-            if (pfConfidence === 'high') {
-              orcidQuery = (ctx.topPingfangRecord?.name_en as string) || scholarName || en_name || searchName;
+            // Step 1: 构造 orcidQuery
+            let orcidQuery: string = '';
+            if (searchStrategy && searchStrategy.orcid_queries && searchStrategy.orcid_queries.length > 0) {
+              orcidQuery = searchStrategy.orcid_queries[0];
+            } else if (searchStrategy && searchStrategy.english_name) {
+              orcidQuery = searchStrategy.english_name;
             } else {
-              orcidQuery = en_name || searchName;
-            }
-            // 中文 → 统一用 generatePinyinVariants
-            if (/^[\u4e00-\u9fa5]+$/.test(orcidQuery.trim())) {
-              const pyVars = generatePinyinVariants(orcidQuery);
-              if (pyVars.length > 0) {
-                orcidQuery = pyVars[0];
-                sendEvent('log', { step: 'orcid', message: `   中文名自动转为拼音: ${orcidQuery}` });
+              // 兜底逻辑
+              if (pfConfidence === 'high') {
+                orcidQuery = (ctx.topPingfangRecord?.name_en as string) || scholarName || en_name || searchName;
+              } else {
+                orcidQuery = en_name || searchName;
+              }
+              if (/^[\u4e00-\u9fa5]+$/.test(orcidQuery.trim())) {
+                const pyVars = generatePinyinVariants(orcidQuery);
+                if (pyVars.length > 0) {
+                  orcidQuery = pyVars[0];
+                  sendEvent('log', { step: 'orcid', message: `   中文名自动转为拼音: ${orcidQuery}` });
+                }
               }
             }
 
@@ -954,14 +1001,23 @@ export async function runTalentWebSearchStream(query: string, institution: strin
           }
 
           // Stage 3: Wikipedia / 百度百科
-          // ── 【修复 1】osintQuery 加 pfConfidence ──
-          let osintQuery: string;
-          if (pfConfidence === 'high') {
-            osintQuery = (topPingfangRecord?.name_en as string) || en_name || searchName;
+          let osintQuery: string = '';
+          let bkQuery: string = cn_name || searchName;
+          
+          if (searchStrategy && searchStrategy.wiki_queries && searchStrategy.wiki_queries.length > 0) {
+            const wq = searchStrategy.wiki_queries;
+            // 挑一个看起来是英文的给 Wikipedia，或者用第一个
+            osintQuery = wq.find((q: string) => /^[a-zA-Z\s\.,]+$/.test(q)) || wq[0];
+            // 挑一个看起来是中文的给百度百科，或者用第一个
+            bkQuery = wq.find((q: string) => /[\u4e00-\u9fa5]/.test(q)) || wq[0];
           } else {
-            osintQuery = en_name || searchName;
+            // ── 兜底 ──
+            if (pfConfidence === 'high') {
+              osintQuery = (topPingfangRecord?.name_en as string) || en_name || searchName;
+            } else {
+              osintQuery = en_name || searchName;
+            }
           }
-          const bkQuery = cn_name || searchName;
 
           // ── 机构线索（用于交叉验证）──
           const clueInsts: string[] = [];
@@ -984,9 +1040,14 @@ export async function runTalentWebSearchStream(query: string, institution: strin
           let pendingWikiCandidates: Array<{ pageid: number; title: string; url: string; biography: string; score: number; instScore: number }> = [];
 
           // 加人才限定词，避免搜到历史人物、文艺角色等不相关同名人
-          const wikiSearchQuery = institution
-            ? `${osintQuery} ${institution}`
-            : `${osintQuery} scholar OR professor OR researcher OR scientist OR engineer OR executive`;
+          let wikiSearchQuery = osintQuery;
+          if (institution) {
+             wikiSearchQuery = `${osintQuery} ${institution}`;
+          } else if (searchStrategy && searchStrategy.research_fields && searchStrategy.research_fields.length > 0) {
+             wikiSearchQuery = `${osintQuery} ${searchStrategy.research_fields[0]}`;
+          } else {
+             wikiSearchQuery = `${osintQuery} scholar OR professor OR researcher OR scientist OR engineer OR executive`;
+          }
           sendEvent('log', { step: 'wikipedia', message: `🔍 [第三阶段] 正在检索维基百科 (Wikipedia): ${wikiSearchQuery}...` });
           let foundWiki = false;
           try {
