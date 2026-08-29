@@ -12,7 +12,7 @@ export async function POST(request: Request) {
     // 1. 获取选中的人才日志及其转译数据
     const { data: profiles, error: fetchErr } = await supabase
       .from('talent_profiles')
-      .select('talent_entry_id, structured_data')
+      .select('talent_entry_id, structured_data, db_entity_id')
       .in('talent_entry_id', mcpIds);
 
     if (fetchErr) {
@@ -24,14 +24,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: '未找到可导入的数据' }, { status: 404 });
     }
 
+    const toInsert: any[] = [];
+    const toUpdate: any[] = [];
+
     // 2. 将数据组装为实体库格式
-    const entitiesToInsert = profiles.map(p => {
+    profiles.forEach(p => {
       const s = p.structured_data || {};
-      return {
-        // 源关联ID，用于追溯
+      const entityData = {
         source_journal_id: p.talent_entry_id,
-        
-        // 映射所有的平面文本字段
         first_name: s.first_name || '',
         last_name: s.last_name || '',
         name: s.name || '',
@@ -49,45 +49,61 @@ export async function POST(request: Request) {
         introduction: s.introduction || '',
         research_field: s.research_field || '',
         work_current: s.work_current || '',
-        
-        // 子实体映射 (确保是数组)
         educations: Array.isArray(s.educations) ? s.educations : [],
         work_experiences: Array.isArray(s.work_experiences) ? s.work_experiences : [],
         awards: Array.isArray(s.awards) ? s.awards : [],
         patents: Array.isArray(s.patents) ? s.patents : [],
         papers: Array.isArray(s.papers) ? s.papers : [],
-        
-        // 初始状态
-        created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
+
+      if (p.db_entity_id) {
+        toUpdate.push({ id: p.db_entity_id, ...entityData });
+      } else {
+        toInsert.push({ ...entityData, created_at: new Date().toISOString() });
+      }
     });
 
-    // 3. 批量插入到独立的人才实体库表 'talent_db_entities'
-    const { data: insertedRows, error: insertErr } = await supabase
-      .from('talent_db_entities')
-      .insert(entitiesToInsert)
-      .select('id, source_journal_id');
+    let insertedCount = 0;
+    let updatedCount = 0;
 
-    if (insertErr) {
-      console.error('插入实体库失败:', insertErr);
-      return NextResponse.json({ error: '插入实体库失败。请确认数据库中已创建 talent_db_entities 表。' }, { status: 500 });
-    }
+    // 3. 批量插入新记录
+    if (toInsert.length > 0) {
+      const { data: insertedRows, error: insertErr } = await supabase
+        .from('talent_db_entities')
+        .insert(toInsert)
+        .select('id, source_journal_id');
 
-    // 4. 更新关联表状态
-    if (insertedRows && insertedRows.length > 0) {
-      const entryIds = insertedRows.map(r => r.source_journal_id).filter(Boolean);
-      if (entryIds.length > 0) {
-        await supabase.from('talent_entries').update({ imported_to_db: true }).in('id', entryIds);
-      }
-      for (const row of insertedRows) {
-        if (row.source_journal_id) {
-          await supabase.from('talent_profiles').update({ db_entity_id: row.id }).eq('talent_entry_id', row.source_journal_id);
+      if (insertErr) throw new Error('插入新实体失败: ' + insertErr.message);
+      insertedCount = insertedRows?.length || 0;
+
+      if (insertedRows && insertedRows.length > 0) {
+        const entryIds = insertedRows.map(r => r.source_journal_id).filter(Boolean);
+        if (entryIds.length > 0) {
+          await supabase.from('talent_entries').update({ imported_to_db: true }).in('id', entryIds);
+        }
+        for (const row of insertedRows) {
+          if (row.source_journal_id) {
+            await supabase.from('talent_profiles').update({ db_entity_id: row.id }).eq('talent_entry_id', row.source_journal_id);
+          }
         }
       }
     }
 
-    return NextResponse.json({ ok: true, importedCount: entitiesToInsert.length });
+    // 4. 更新已有记录 (去重逻辑)
+    if (toUpdate.length > 0) {
+      for (const record of toUpdate) {
+        const { id, ...updateData } = record;
+        const { error: updateErr } = await supabase
+          .from('talent_db_entities')
+          .update(updateData)
+          .eq('id', id);
+        if (updateErr) console.error('更新实体失败:', updateErr);
+        else updatedCount++;
+      }
+    }
+
+    return NextResponse.json({ ok: true, importedCount: insertedCount + updatedCount, inserted: insertedCount, updated: updatedCount });
   } catch (error: any) {
     console.error('Import DB error:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
