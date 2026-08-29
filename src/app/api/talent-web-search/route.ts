@@ -10,12 +10,12 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { query, en_name, cn_name, institution } = body;
+    const { query, en_name, cn_name, institution, modelId } = body;
     if (!query) {
       return NextResponse.json({ error: 'Missing query' }, { status: 400 });
     }
 
-    const stream = await runTalentWebSearchStream(query, institution, en_name, cn_name);
+    const stream = await runTalentWebSearchStream(query, institution, en_name, cn_name, modelId);
     const token = await getToken(request);
     const logger = new ToolUsageLogger('talent-web-search', query);
 

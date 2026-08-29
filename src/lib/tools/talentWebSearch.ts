@@ -3,16 +3,21 @@ import { searchWeb } from '@/lib/search';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import OpenAI from "openai";
 import pinyin from 'pinyin';
+import { MODEL_OPTIONS } from '@/lib/models';
 
 const talentService = new TalentAuditService();
 
-function getOpenAIClient() {
-  const apiKey = process.env.DASHSCOPE_API_KEY;
-  if (!apiKey) throw new Error('DASHSCOPE_API_KEY 未配置');
-  return new OpenAI({
-    apiKey,
-    baseURL: process.env.DASHSCOPE_BASE_URL || 'https://dashscope.aliyuncs.com/compatible-mode/v1'
-  });
+function getOpenAIClient(modelId?: string) {
+  const config = MODEL_OPTIONS.find(m => m.id === modelId) || MODEL_OPTIONS[0];
+  const apiKey = process.env[config.apiKeyEnv];
+  if (!apiKey) throw new Error(`Model API KEY 未配置: ${config.apiKeyEnv}`);
+  return {
+    client: new OpenAI({
+      apiKey,
+      baseURL: config.baseURL
+    }),
+    modelName: config.modelName,
+  };
 }
 
 
@@ -573,7 +578,7 @@ function runPingfangDisambiguation(candidates: any[], opts: DisambiguationOption
 
 // ------------------------------------------------
 
-export async function runTalentWebSearchStream(query: string, institution: string, en_name?: string, cn_name?: string) {
+export async function runTalentWebSearchStream(query: string, institution: string, en_name?: string, cn_name?: string, modelId?: string) {
     if (!query) {
       throw new Error('Missing query');
     }
@@ -1423,10 +1428,95 @@ ${correctionText.substring(0, 2000)}
             }
           }
 
+          // ── Targeted Gap-filling (定向突破) ──────────────────────────────────────────
+          sendEvent('log', { step: 'gap_filling', message: `🔍 [定向突破] 开始分析数据缺漏，尝试定向补充...` });
+          const aiClient = getOpenAIClient(modelId);
+          
+          const diagnosticPrompt = `
+你是一个极度严谨的数据质检员。
+我有一份关于学者 "${searchName}" 的初步收集数据。我们期望的最终人物图谱应该包含极其详尽的信息。
+请你检查目前的原始数据，看看是否缺失了以下【核心硬指标】：
+1. 教育经历（尤其是本科院校）
+2. 工作经历（历史过往雇主）
+
+如果上述【核心硬指标】存在重大缺失（例如：完全没有教育经历，或只有目前的工作而没有历史经历），请生成 1 到 3 个用于在搜索引擎上查找这些缺失信息的检索词（Query）。
+例如，如果缺少本科学校，可以生成 "${searchName} 本科 毕业院校" 或 "${searchName} bachelor degree"。
+
+🚨 优先级限制：
+- 请**只**死磕“教育经历”和“工作经历”。
+- 对于“论文”、“专利”、“荣誉”这种高度长尾的数据，如果搜不到请直接放弃，**绝对不要**为它们生成检索词。
+- 如果教育和工作经历目前看起来已经足够丰富，或者没有任何明显缺失，请返回空数组。
+
+现有数据如下：
+${JSON.stringify(allGatheredData, null, 2).substring(0, 30000)}
+
+请返回合法的 JSON，严格按照如下格式：
+{
+  "missing_fields": ["缺失字段的描述"],
+  "search_queries": ["检索词1", "检索词2"]
+}
+`;
+          let gapQueries: string[] = [];
+          let missingFields: string[] = [];
+          try {
+            const diagRes = await aiClient.client.chat.completions.create({
+              model: aiClient.modelName,
+              messages: [{ role: 'user', content: diagnosticPrompt }],
+              response_format: { type: 'json_object' }
+            });
+            const diagResult = JSON.parse(diagRes.choices[0]?.message?.content || '{}');
+            gapQueries = diagResult.search_queries || [];
+            missingFields = diagResult.missing_fields || [];
+          } catch (e) {
+            sendEvent('log', { step: 'gap_filling', message: `⚠️ [定向突破] 诊断请求失败，跳过补充。` });
+          }
+
+          if (gapQueries.length > 0) {
+            sendEvent('log', { step: 'gap_filling', message: `🎯 [定向突破] 发现缺失: ${missingFields.join('、')}。执行 ${gapQueries.length} 次定向检索...` });
+            const gapResults: any[] = [];
+            for (const q of gapQueries) {
+              sendEvent('log', { step: 'gap_filling', message: `   ↳ 搜索: "${q}"...` });
+              const res = await searchWeb(q);
+              if (res && res.length > 0) {
+                gapResults.push({ query: q, results: res.slice(0, 5) });
+              }
+            }
+
+            if (gapResults.length > 0) {
+              const extractPrompt = `
+你是一个信息提取助手。请根据以下搜索引擎返回的网页片段，尝试提取关于学者 "${searchName}" 的以下缺失信息：
+${missingFields.join('、')}
+
+搜索引擎结果片段：
+${JSON.stringify(gapResults, null, 2).substring(0, 20000)}
+
+请提取找到的有用信息，并严格以 JSON 格式返回。如果你在搜索结果中没有找到相关信息，请返回空对象 {}。绝对不要编造。
+`;
+              try {
+                const extRes = await aiClient.client.chat.completions.create({
+                  model: aiClient.modelName,
+                  messages: [{ role: 'user', content: extractPrompt }],
+                  response_format: { type: 'json_object' }
+                });
+                const extData = JSON.parse(extRes.choices[0]?.message?.content || '{}');
+                if (Object.keys(extData).length > 0) {
+                  allGatheredData['targeted_supplements'] = extData;
+                  sendEvent('log', { step: 'gap_filling', message: `✅ [定向突破] 成功提取到补充数据！` });
+                } else {
+                  sendEvent('log', { step: 'gap_filling', message: `⚠️ [定向突破] 定向检索未发现有效补充信息。` });
+                }
+              } catch (e) {
+                sendEvent('log', { step: 'gap_filling', message: `⚠️ [定向突破] 提取请求失败。` });
+              }
+            } else {
+               sendEvent('log', { step: 'gap_filling', message: `⚠️ [定向突破] 定向检索未返回任何有效网页。` });
+            }
+          } else {
+            sendEvent('log', { step: 'gap_filling', message: `✅ [定向突破] 核心硬指标基本完整，无需定向补充。` });
+          }
+
           // Stage +1: AI Assemble
           sendEvent('log', { step: 'ai_assemble', message: `🧠 [最终整合] 数据收集完毕，开始交由大模型组装合并报告...` });
-
-          const client = getOpenAIClient();
           const sourcesFound = Object.keys(allGatheredData).filter(k => !k.startsWith('_')).join('、') || '暂无结构化数据';
 
           // ── 构造数据源可信度说明 ──
@@ -1489,8 +1579,8 @@ ${JSON.stringify(allGatheredData, null, 2)}
 🚨 特别注意：你只需输出纯 Markdown 文本，**绝对禁止**将内容包裹在 <zj_report> 或任何其他 XML 标签中。不需要写标题，直接从正文开始。
 `;
 
-          const aiStream = await client.chat.completions.create({
-            model: process.env.DEEPSEEK_MODEL || 'deepseek-v3.2-exp',
+          const aiStream = await aiClient.client.chat.completions.create({
+            model: aiClient.modelName,
             messages: [{ role: 'user', content: assemblePrompt }],
             stream: true,
             max_tokens: 8192,

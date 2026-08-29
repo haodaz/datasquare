@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Card, Input, Button, Table, Tag, Progress, Upload, Space, Typography, message, Popconfirm } from 'antd';
 import { PlusOutlined, UploadOutlined, PlayCircleOutlined, DeleteOutlined, EyeOutlined, ReloadOutlined, RedoOutlined, StopOutlined, CaretRightOutlined } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
+import { useModel } from '@/lib/model-context';
 
 const { Title, Text } = Typography;
 
@@ -24,6 +25,7 @@ interface BatchJob {
 
 export function TalentBatchSearch() {
   const router = useRouter();
+  const { currentModel } = useModel();
   // ── 输入区 ──
   const [inputs, setInputs] = useState<TaskInput[]>([
     { key: '1', name: '', institution: '' },
@@ -120,6 +122,7 @@ export function TalentBatchSearch() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          modelId: currentModel,
           tasks: validTasks.map(t => ({ name: t.name, institution: t.institution })),
         }),
       });

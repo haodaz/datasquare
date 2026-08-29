@@ -15,7 +15,7 @@ const CONCURRENCY = 2; // 每轮并发数
  */
 export async function POST(request: Request) {
   try {
-    const { batch_id } = await request.json();
+    const { batch_id, modelId } = await request.json();
     if (!batch_id) {
       return NextResponse.json({ error: 'Missing batch_id' }, { status: 400 });
     }
@@ -83,7 +83,7 @@ export async function POST(request: Request) {
 
     // 3. 并发执行所有任务
     await Promise.allSettled(
-      pendingTasks.map(task => processOneTask(task, batch_id))
+      pendingTasks.map(task => processOneTask(task, batch_id, modelId))
     );
 
     // 4. 更新批次完成计数
@@ -102,7 +102,7 @@ export async function POST(request: Request) {
     fetch(selfUrl.toString(), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ batch_id }),
+      body: JSON.stringify({ batch_id, modelId }),
     }).catch(e => console.error('[BatchSearch] 链式调用失败:', e));
 
     return NextResponse.json({ ok: true, processed: taskIds });
@@ -116,7 +116,7 @@ export async function POST(request: Request) {
 /**
  * 处理单条任务（提取为独立函数，方便并发调用）
  */
-async function processOneTask(task: any, batch_id: number) {
+async function processOneTask(task: any, batch_id: number, modelId?: string) {
   const logs: { step: string; message: string }[] = [];
   let aiReport = '';
   let rawData: Record<string, any> | null = null;
@@ -158,6 +158,9 @@ async function processOneTask(task: any, batch_id: number) {
     const stream = await runTalentWebSearchStream(
       task.talent_name,
       task.institution || '',
+      undefined,
+      undefined,
+      modelId
     );
 
     const reader = stream.getReader();

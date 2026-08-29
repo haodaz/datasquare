@@ -15,7 +15,7 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { tasks } = body;
+    const { tasks, modelId } = body;
 
     if (!Array.isArray(tasks) || tasks.length === 0) {
       return NextResponse.json({ error: '请至少添加一条检索任务' }, { status: 400 });
@@ -67,7 +67,7 @@ export async function POST(request: Request) {
     fetch(processUrl.toString(), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ batch_id: job.id }),
+      body: JSON.stringify({ batch_id: job.id, modelId }),
     }).catch(e => console.error('[BatchSearch] 触发处理失败:', e));
 
     return NextResponse.json({ ok: true, batch_id: job.id });
