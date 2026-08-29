@@ -413,9 +413,9 @@ class TalentJournalManagerSupabase {
       verified: row.verified || false,
       verified_at: row.verified_at,
       notes: row.notes,
-      structured_data: profile ? Object.fromEntries(
-        Object.entries(profile).filter(([k]) => !['id', 'talent_entry_id', 'parsed_at', 'parsed_by', 'updated_at', 'field_provenance'].includes(k))
-      ) : undefined,
+      structured_data: profile?.structured_data ? profile.structured_data : (profile ? Object.fromEntries(
+        Object.entries(profile).filter(([k]) => !['id', 'talent_entry_id', 'parsed_at', 'parsed_by', 'updated_at', 'field_provenance', 'db_entity_id'].includes(k))
+      ) : undefined),
       _mcp_id: row.id, // 复用 _mcp_id 字段存 Supabase id，前端兼容
       imported_to_db: row.imported_to_db || false,
       db_entity_id: profile.db_entity_id,
