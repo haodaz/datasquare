@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getToken, checkIsAdmin } from '@/lib/auth';
 import { supabase } from '@/lib/supabase/client';
+import { MODEL_OPTIONS } from '@/lib/models';
 
 export const runtime = 'nodejs';
 
@@ -11,8 +12,12 @@ export async function POST(req: Request) {
   if (!isAdmin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   try {
-    const { mcpId } = await req.json();
+    const { mcpId, modelId } = await req.json();
     if (!mcpId) return NextResponse.json({ error: 'Missing mcpId' }, { status: 400 });
+
+    const config = MODEL_OPTIONS.find(m => m.id === modelId) || MODEL_OPTIONS[0];
+    const apiKey = process.env[config.apiKeyEnv];
+    if (!apiKey) throw new Error(`Missing ${config.apiKeyEnv} environment variable for model ${config.label}`);
 
     // 1. 从 Supabase 读取人才数据（entry + profile + source_data）
     const { data: entry, error: dbErr } = await supabase
@@ -98,19 +103,16 @@ ${sourceInfo}
 `;
 
     // 4. 调用 AI
-    const deepseekKey = process.env.DASHSCOPE_API_KEY;
-    if (!deepseekKey) throw new Error('Missing DASHSCOPE_API_KEY');
-
-    const res = await fetch('https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', {
+    const res = await fetch(`${config.baseURL}/chat/completions`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${deepseekKey}`,
+        'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: process.env.DEEPSEEK_MODEL || 'deepseek-v3.2-exp',
+        model: config.modelName,
         messages: [{ role: 'user', content: prompt }],
-        response_format: { type: 'json_object' }
+        ...(config.supportsJsonMode ? { response_format: { type: 'json_object' } } : {})
       })
     });
 

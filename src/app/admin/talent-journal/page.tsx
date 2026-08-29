@@ -6,11 +6,21 @@ import {
   SearchOutlined, DownloadOutlined, ReloadOutlined, CheckCircleOutlined,
   DeleteOutlined, EyeOutlined, EditOutlined, DatabaseOutlined, NodeIndexOutlined,
 } from '@ant-design/icons';
+import { useModel } from '@/lib/model-context';
 import type { TalentJournalEntry } from '@/lib/mcp/talent-journal-shared';
 import { DATA_SOURCE_LABEL, DATA_SOURCE_COLORS, TRIGGER_TOOL_LABEL, TRIGGER_TOOL_COLORS, formatDataSources } from '@/lib/mcp/talent-journal-shared';
 import { fetchWithAuth } from '@/lib/fetchWithAuth';
 
 const PRIMARY = '#6055f5';
+
+// Helper to determine if a record is truly translated with new schema
+const isValidTranslated = (data: any) => {
+  if (!data || typeof data !== 'object') return false;
+  // Check if it has non-null/non-empty values for new schema keys
+  const hasValidName = !!data.name || !!data.first_name || !!data.name_en;
+  const hasValidFields = !!data.work_experiences || !!data.research_field || !!data.introduction || !!data.bachelor_school;
+  return hasValidName || hasValidFields;
+};
 
 type SortKey = 'search_count' | 'last_searched' | 'name' | 'institution';
 type SortOrder = 'ascend' | 'descend' | null;
@@ -23,6 +33,9 @@ type GlobalStats = {
 };
 
 export default function TalentJournalPage() {
+  const router = useRouter();
+  const { currentModel } = useModel();
+
   const [data, setData] = useState<TalentJournalEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [total, setTotal] = useState(0);
@@ -38,8 +51,16 @@ export default function TalentJournalPage() {
   const [translating, setTranslating] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [mergePreviewOpen, setMergePreviewOpen] = useState(false);
+  const [merging, setMerging] = useState(false);
   const [editNotes, setEditNotes] = useState('');
   const [notesModalEntry, setNotesModalEntry] = useState<TalentJournalEntry | null>(null);
+  
+  // 批量转译状态
+  const [batchTranslating, setBatchTranslating] = useState(false);
+  const [translatingTotal, setTranslatingTotal] = useState(0);
+  const [translatingDone, setTranslatingDone] = useState(0);
+  const [translatingFail, setTranslatingFail] = useState(0);
+
   // 批量导出：记录当前页勾选的 mcp id
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [selectedRowMap, setSelectedRowMap] = useState<Record<string, TalentJournalEntry>>({});
@@ -243,7 +264,7 @@ export default function TalentJournalPage() {
   const handleImportToDb = async () => {
     if (selectedRowKeys.length === 0) return;
     
-    const translatedKeys = selectedRowKeys.filter(k => selectedRowMap[k as string]?.structured_data);
+    const translatedKeys = selectedRowKeys.filter(k => isValidTranslated(selectedRowMap[k as string]?.structured_data));
     const unTranslatedCount = selectedRowKeys.length - translatedKeys.length;
 
     if (translatedKeys.length === 0) {
@@ -275,6 +296,63 @@ export default function TalentJournalPage() {
     } finally {
       setImporting(false);
     }
+  };
+
+  const handleBatchTranslate = async () => {
+    const unTranslatedKeys = selectedRowKeys.filter(k => !isValidTranslated(selectedRowMap[k as string]?.structured_data));
+    if (unTranslatedKeys.length === 0) {
+      message.info('选中的记录已经全部转译过啦！');
+      return;
+    }
+
+    setBatchTranslating(true);
+    setTranslatingTotal(unTranslatedKeys.length);
+    setTranslatingDone(0);
+    setTranslatingFail(0);
+
+    let done = 0;
+    let fail = 0;
+
+    // Concurrency of 2
+    const concurrency = 2;
+    let i = 0;
+
+    const worker = async () => {
+      while (i < unTranslatedKeys.length) {
+        const id = unTranslatedKeys[i++];
+        try {
+          const res = await fetchWithAuth('/api/admin/talent-journal/translate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ mcpId: id, modelId: currentModel }),
+          });
+          const json = await res.json();
+          if (json.ok) {
+            done++;
+            setTranslatingDone(done);
+          } else {
+            fail++;
+            setTranslatingFail(fail);
+          }
+        } catch (e) {
+          fail++;
+          setTranslatingFail(fail);
+        }
+      }
+    };
+
+    const workers = [];
+    for (let w = 0; w < concurrency; w++) {
+      workers.push(worker());
+    }
+
+    await Promise.all(workers);
+
+    message.success(`批量转译结束！成功 ${done} 条，失败 ${fail} 条`);
+    setBatchTranslating(false);
+    setSelectedRowKeys([]);
+    setSelectedRowMap({});
+    fetchData(); // 刷新数据
   };
 
   const columns = [
@@ -411,10 +489,10 @@ export default function TalentJournalPage() {
         { text: '未转译', value: false },
       ],
       onFilter: (value, record) => {
-        const isTranslated = !!record.structured_data;
-        return isTranslated === value;
+        const isTrans = isValidTranslated(record.structured_data);
+        return isTrans === value;
       },
-      render: (_: any, record: TalentJournalEntry) => !!record.structured_data 
+      render: (_: any, record: TalentJournalEntry) => isValidTranslated(record.structured_data) 
         ? <Tag color="processing">已转译</Tag>
         : <Tag color="default">未转译</Tag>,
     },
@@ -573,6 +651,14 @@ export default function TalentJournalPage() {
             </Button>
           </div>
           <Space>
+            <Button
+              size="small"
+              icon={<SyncOutlined spin={batchTranslating} />}
+              onClick={handleBatchTranslate}
+              disabled={selectedRowKeys.length === 0}
+            >
+              批量转译
+            </Button>
             <Button
               type="primary"
               size="small"
@@ -882,7 +968,7 @@ export default function TalentJournalPage() {
                 onClick={() => translateDrawerEntry._mcp_id && handleTranslate(translateDrawerEntry._mcp_id as number)}
                 style={{ marginTop: 16, width: '100%', background: PRIMARY }}
               >
-                {translateDrawerEntry.structured_data ? '重新转译' : '立即转译 (调用 Deepseek)'}
+                {isValidTranslated(translateDrawerEntry.structured_data) ? '重新转译' : `立即转译 (${currentModel})`}
               </Button>
             </Section>
 
