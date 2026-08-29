@@ -243,11 +243,16 @@ export default function TalentJournalPage() {
   const handleImportToDb = async () => {
     if (selectedRowKeys.length === 0) return;
     
-    // Check if any selected row is not translated
-    const unTranslated = selectedRowKeys.filter(k => !selectedRowMap[k as string]?.structured_data);
-    if (unTranslated.length > 0) {
-      message.warning('存在未转译的记录，请先转译后再导入');
+    const translatedKeys = selectedRowKeys.filter(k => selectedRowMap[k as string]?.structured_data);
+    const unTranslatedCount = selectedRowKeys.length - translatedKeys.length;
+
+    if (translatedKeys.length === 0) {
+      message.warning('您选中的记录均未包含结构化转译数据，无法导入');
       return;
+    }
+
+    if (unTranslatedCount > 0) {
+      message.info(`已自动过滤 ${unTranslatedCount} 条未转译记录`);
     }
 
     setImporting(true);
@@ -255,7 +260,7 @@ export default function TalentJournalPage() {
       const res = await fetchWithAuth('/api/admin/talent-db/import', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mcpIds: selectedRowKeys }),
+        body: JSON.stringify({ mcpIds: translatedKeys }),
       });
       const json = await res.json();
       if (json.ok) {
@@ -396,6 +401,22 @@ export default function TalentJournalPage() {
       render: (v: boolean) => v
         ? <Tag color="success" icon={<CheckCircleOutlined />}>已验证</Tag>
         : <Tag color="default">待验证</Tag>,
+    },
+    {
+      title: '转译状态',
+      key: 'translated',
+      width: 100,
+      filters: [
+        { text: '已转译', value: true },
+        { text: '未转译', value: false },
+      ],
+      onFilter: (value, record) => {
+        const isTranslated = !!record.structured_data;
+        return isTranslated === value;
+      },
+      render: (_: any, record: TalentJournalEntry) => !!record.structured_data 
+        ? <Tag color="processing">已转译</Tag>
+        : <Tag color="default">未转译</Tag>,
     },
     {
       title: '操作',
