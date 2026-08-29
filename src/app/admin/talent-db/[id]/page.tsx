@@ -153,8 +153,10 @@ export default function TalentDatabaseDetail({ params }: { params: Promise<{ id:
                   rowKey="key"
                   size="small"
                   columns={[
-                    { title: '获奖时间', dataIndex: 'name', width: 150, render: (name) => <Form.Item name={[name, 'time']} noStyle><Input /></Form.Item> },
-                    { title: '奖项名称', dataIndex: 'name', render: (name) => <Form.Item name={[name, 'name']} noStyle><Input /></Form.Item> },
+                    { title: '获奖时间', dataIndex: 'name', width: 120, render: (name) => <Form.Item name={[name, 'time']} noStyle><Input /></Form.Item> },
+                    { title: '级别', dataIndex: 'name', width: 150, render: (name) => <Form.Item name={[name, 'level']} noStyle><Input /></Form.Item> },
+                    { title: '奖项名称', dataIndex: 'name', width: 300, render: (name) => <Form.Item name={[name, 'name']} noStyle><Input /></Form.Item> },
+                    { title: '获奖理由', dataIndex: 'name', render: (name) => <Form.Item name={[name, 'description']} noStyle><Input.TextArea rows={1} /></Form.Item> },
                     { title: '操作', width: 80, render: (_, field) => <Button type="link" danger onClick={() => remove(field.name)}>删除</Button> }
                   ]}
                 />
@@ -174,9 +176,13 @@ export default function TalentDatabaseDetail({ params }: { params: Promise<{ id:
                   rowKey="key"
                   size="small"
                   columns={[
-                    { title: '时间', dataIndex: 'name', width: 150, render: (name) => <Form.Item name={[name, 'time']} noStyle><Input /></Form.Item> },
-                    { title: '专利名称', dataIndex: 'name', width: 300, render: (name) => <Form.Item name={[name, 'name']} noStyle><Input /></Form.Item> },
-                    { title: '发明人角色', dataIndex: 'name', render: (name) => <Form.Item name={[name, 'role']} noStyle><Input /></Form.Item> },
+                    { title: '时间', dataIndex: 'name', width: 120, render: (name) => <Form.Item name={[name, 'time']} noStyle><Input /></Form.Item> },
+                    { title: '类型', dataIndex: 'name', width: 100, render: (name) => <Form.Item name={[name, 'patent_type']} noStyle><Input /></Form.Item> },
+                    { title: '申请/公开号', dataIndex: 'name', width: 150, render: (name) => <Form.Item name={[name, 'application_number']} noStyle><Input /></Form.Item> },
+                    { title: '专利名称', dataIndex: 'name', width: 250, render: (name) => <Form.Item name={[name, 'name']} noStyle><Input /></Form.Item> },
+                    { title: '所有发明人', dataIndex: 'name', width: 150, render: (name) => <Form.Item name={[name, 'inventors']} noStyle><Input /></Form.Item> },
+                    { title: '本人角色', dataIndex: 'name', width: 100, render: (name) => <Form.Item name={[name, 'role']} noStyle><Input /></Form.Item> },
+                    { title: '摘要', dataIndex: 'name', render: (name) => <Form.Item name={[name, 'abstract']} noStyle><Input.TextArea rows={1} /></Form.Item> },
                     { title: '操作', width: 80, render: (_, field) => <Button type="link" danger onClick={() => remove(field.name)}>删除</Button> }
                   ]}
                 />
@@ -196,9 +202,12 @@ export default function TalentDatabaseDetail({ params }: { params: Promise<{ id:
                   rowKey="key"
                   size="small"
                   columns={[
-                    { title: '发表时间', dataIndex: 'name', width: 150, render: (name) => <Form.Item name={[name, 'time']} noStyle><Input /></Form.Item> },
-                    { title: '论文标题', dataIndex: 'name', width: 400, render: (name) => <Form.Item name={[name, 'title']} noStyle><Input.TextArea rows={1} /></Form.Item> },
-                    { title: '期刊/会议名称', dataIndex: 'name', render: (name) => <Form.Item name={[name, 'journal']} noStyle><Input /></Form.Item> },
+                    { title: '发表时间', dataIndex: 'name', width: 120, render: (name) => <Form.Item name={[name, 'time']} noStyle><Input /></Form.Item> },
+                    { title: '作者', dataIndex: 'name', width: 180, render: (name) => <Form.Item name={[name, 'authors']} noStyle><Input /></Form.Item> },
+                    { title: '论文标题', dataIndex: 'name', width: 300, render: (name) => <Form.Item name={[name, 'title']} noStyle><Input.TextArea rows={1} /></Form.Item> },
+                    { title: '期刊/会议', dataIndex: 'name', width: 200, render: (name) => <Form.Item name={[name, 'journal']} noStyle><Input /></Form.Item> },
+                    { title: '收录情况', dataIndex: 'name', width: 120, render: (name) => <Form.Item name={[name, 'indexed_by']} noStyle><Input /></Form.Item> },
+                    { title: '影响因子', dataIndex: 'name', width: 100, render: (name) => <Form.Item name={[name, 'impact_factor']} noStyle><Input /></Form.Item> },
                     { title: '操作', width: 80, render: (_, field) => <Button type="link" danger onClick={() => remove(field.name)}>删除</Button> }
                   ]}
                 />

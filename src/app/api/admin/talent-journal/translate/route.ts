@@ -92,13 +92,13 @@ ${sourceData.map((sd: any) => `--- ${sd.source_key} 原始数据 ---\n${JSON.str
     { "company": "工作单位", "department": "二级工作单位(如有)", "position": "职务/岗位类别", "start_time": "开始时间", "end_time": "结束时间", "description": "工作内容描述" }
   ],
   "awards": [
-    { "time": "获奖时间", "name": "奖项名称/荣誉" }
+    { "time": "获奖时间", "name": "奖项名称/荣誉", "level": "奖项级别(如国际级/国家级/省部级)", "description": "获奖理由/描述" }
   ],
   "patents": [
-    { "time": "申请/授权时间", "name": "专利名称", "role": "发明人角色" }
+    { "time": "申请/授权时间", "name": "专利名称", "patent_type": "专利类型(如发明/实用新型)", "application_number": "申请号/公开号", "inventors": "所有发明人", "role": "本人角色", "abstract": "摘要" }
   ],
   "papers": [
-    { "time": "发表时间", "title": "论文标题", "journal": "期刊/会议名称" }
+    { "time": "发表时间", "title": "论文标题", "journal": "期刊/会议名称", "authors": "作者列表", "indexed_by": "收录情况(如SCI/EI/CCF-A)", "impact_factor": "影响因子" }
   ]
 }
 
