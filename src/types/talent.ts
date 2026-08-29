@@ -87,18 +87,12 @@ export interface TalentDBEntity {
   profile_link?: string;
   introduction?: string;
   research_field?: string;
-  bachelor_duration?: string;
-  bachelor_school?: string;
-  bachelor_major?: string;
-  master_duration?: string;
-  master_school?: string;
-  master_major?: string;
-  phd_duration?: string;
-  phd_school?: string;
-  phd_major?: string;
   work_current?: string;
-  work_experiences?: string;
-  award_experiences?: string;
+  educations?: any[];
+  work_experiences?: any[];
+  awards?: any[];
+  patents?: any[];
+  papers?: any[];
   created_at?: string;
   updated_at?: string;
 }

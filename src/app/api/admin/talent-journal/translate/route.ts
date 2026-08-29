@@ -59,13 +59,13 @@ ORCID ID: ${profile?.orcid_id || ''}
 ${sourceData.map((sd: any) => `--- ${sd.source_key} 原始数据 ---\n${JSON.stringify(sd.raw_data || {}, null, 2).substring(0, 1500)}`).join('\n\n')}
 `;
 
-    // 3. 构造 Prompt — 结构化输出，严格对齐 Excel 字段
-    const prompt = `你是一个专业的人才数据提取助手。请根据下方提供的人才源信息，提取并输出标准的结构化 JSON 数据。
+    // 3. 构造 Prompt — 结构化输出，构建人才图谱实体
+    const prompt = `你是一个专业的人才数据提取助手。请根据下方提供的人才源信息，提取并输出高度结构化的 JSON 数据，用于构建标准化的人才图谱。
 
 要求：
 1. 必须输出合法的 JSON，不要输出任何 Markdown 标记。
-2. JSON 必须且只能包含以下 Key。如果源信息中没有对应内容，字符串填 ""，数字填 null。
-3. 请将所有经历（如工作、教育、获奖）转换成简单的长文本格式，各段经历之间用分号 ";" 分隔。
+2. JSON 必须且只能包含以下 Key。如果源信息中没有对应内容，字符串填 ""，数组填 []，数字填 null。
+3. "educations", "work_experiences", "awards", "patents", "papers" 必须是对象数组，严格按照示例的内部字段输出。将所有零散的本科/硕士/博士信息统合到 educations 数组中。
 
 {
   "first_name": "First Name (英文名名)",
@@ -84,18 +84,22 @@ ${sourceData.map((sd: any) => `--- ${sd.source_key} 原始数据 ---\n${JSON.str
   "profile_link": "人才主页链接",
   "introduction": "简介 (一段精炼的个人介绍文本)",
   "research_field": "研究领域 / 突出贡献 (文本)",
-  "bachelor_duration": "本科阶段时间 (开始年份-结束年份)",
-  "bachelor_school": "本科院校",
-  "bachelor_major": "本科专业",
-  "master_duration": "硕士阶段时间",
-  "master_school": "硕士院校",
-  "master_major": "硕士专业",
-  "phd_duration": "博士阶段时间",
-  "phd_school": "博士院校",
-  "phd_major": "博士专业",
   "work_current": "当前工作经历 (开始时间，单位名称，任职岗位)",
-  "work_experiences": "过往工作经历 (每段返回：开始时间-结束时间，单位名称，任职岗位，工作内容。多段用;分隔)",
-  "award_experiences": "获奖经历 (时间，奖项名称。多段用;分隔)"
+  "educations": [
+    { "degree": "学位(如学士/硕士/博士)", "school": "学校名称", "major": "专业", "start_time": "开始时间", "end_time": "结束时间" }
+  ],
+  "work_experiences": [
+    { "company": "工作单位", "department": "二级工作单位(如有)", "position": "职务/岗位类别", "start_time": "开始时间", "end_time": "结束时间", "description": "工作内容描述" }
+  ],
+  "awards": [
+    { "time": "获奖时间", "name": "奖项名称/荣誉" }
+  ],
+  "patents": [
+    { "time": "申请/授权时间", "name": "专利名称", "role": "发明人角色" }
+  ],
+  "papers": [
+    { "time": "发表时间", "title": "论文标题", "journal": "期刊/会议名称" }
+  ]
 }
 
 【人才源信息】：

@@ -5,16 +5,12 @@ dotenv.config({ path: '.env.local' });
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 
 async function check() {
-  const mcpIds = [1]; // Try with a dummy ID, or just see if the query fails entirely
-  const { data: profiles, error: fetchErr } = await supabase
-      .from('talent_profiles')
-      .select('talent_entry_id, structured_data')
-      .in('talent_entry_id', mcpIds);
+  const { data, error } = await supabase
+    .from('talent_entries')
+    .select('*, talent_profiles(*)')
+    .eq('talent_name', '李飞飞')
+    .limit(1);
 
-  if (fetchErr) {
-    console.error('Error fetching talent_profiles:', fetchErr);
-  } else {
-    console.log('Success, data length:', profiles?.length);
-  }
+  console.log('Result:', JSON.stringify(data?.[0]?.talent_profiles, null, 2));
 }
 check();

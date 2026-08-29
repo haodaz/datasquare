@@ -3,7 +3,7 @@
 import React, { useEffect, useState, use } from 'react';
 import { 
   Form, Input, Button, Card, Space, Typography, message, 
-  Row, Col 
+  Row, Col, Table
 } from 'antd';
 import { ArrowLeftOutlined } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
@@ -90,28 +90,125 @@ export default function TalentDatabaseDetail({ params }: { params: Promise<{ id:
           </Row>
         </Card>
 
-        <Card title="教育背景" bordered={false} style={{ marginBottom: 24 }}>
-          <Row gutter={16}>
-            <Col span={8}><Form.Item label="本科阶段时间" name="bachelor_duration"><Input /></Form.Item></Col>
-            <Col span={8}><Form.Item label="本科院校" name="bachelor_school"><Input /></Form.Item></Col>
-            <Col span={8}><Form.Item label="本科专业" name="bachelor_major"><Input /></Form.Item></Col>
-            <Col span={8}><Form.Item label="硕士阶段时间" name="master_duration"><Input /></Form.Item></Col>
-            <Col span={8}><Form.Item label="硕士院校" name="master_school"><Input /></Form.Item></Col>
-            <Col span={8}><Form.Item label="硕士专业" name="master_major"><Input /></Form.Item></Col>
-            <Col span={8}><Form.Item label="博士阶段时间" name="phd_duration"><Input /></Form.Item></Col>
-            <Col span={8}><Form.Item label="博士院校" name="phd_school"><Input /></Form.Item></Col>
-            <Col span={8}><Form.Item label="博士专业" name="phd_major"><Input /></Form.Item></Col>
-          </Row>
+        <Card title="当前工作经历" bordered={false} style={{ marginBottom: 24 }}>
+          <Form.Item name="work_current"><Input.TextArea rows={2} placeholder="开始时间，单位名称，任职岗位" /></Form.Item>
         </Card>
 
-        <Card title="工作经历与获奖" bordered={false} style={{ marginBottom: 24 }}>
-          <Row gutter={16}>
-            <Col span={24}><Form.Item label="当前工作经历" name="work_current"><Input.TextArea rows={2} placeholder="开始时间，单位名称，任职岗位" /></Form.Item></Col>
-            <Col span={24}><Form.Item label="过往工作经历" name="work_experiences"><Input.TextArea rows={4} placeholder="每段返回：开始时间-结束时间，单位名称，任职岗位，工作内容。多段用;分隔" /></Form.Item></Col>
-            <Col span={24}><Form.Item label="获奖经历" name="award_experiences"><Input.TextArea rows={3} placeholder="时间，奖项名称。多段用;分隔" /></Form.Item></Col>
-          </Row>
+        <Card title="教育背景" bordered={false} style={{ marginBottom: 24 }}>
+          <Form.List name="educations">
+            {(fields, { add, remove }) => (
+              <>
+                <Table
+                  dataSource={fields}
+                  pagination={false}
+                  rowKey="key"
+                  size="small"
+                  columns={[
+                    { title: '学位', dataIndex: 'name', width: 150, render: (name) => <Form.Item name={[name, 'degree']} noStyle><Input /></Form.Item> },
+                    { title: '学校名称', dataIndex: 'name', width: 200, render: (name) => <Form.Item name={[name, 'school']} noStyle><Input /></Form.Item> },
+                    { title: '专业', dataIndex: 'name', width: 200, render: (name) => <Form.Item name={[name, 'major']} noStyle><Input /></Form.Item> },
+                    { title: '开始时间', dataIndex: 'name', width: 150, render: (name) => <Form.Item name={[name, 'start_time']} noStyle><Input /></Form.Item> },
+                    { title: '结束时间', dataIndex: 'name', width: 150, render: (name) => <Form.Item name={[name, 'end_time']} noStyle><Input /></Form.Item> },
+                    { title: '操作', width: 80, render: (_, field) => <Button type="link" danger onClick={() => remove(field.name)}>删除</Button> }
+                  ]}
+                />
+                <Button type="dashed" onClick={() => add()} block style={{ marginTop: 16 }}>+ 添加教育背景</Button>
+              </>
+            )}
+          </Form.List>
+        </Card>
+
+        <Card title="工作经历" bordered={false} style={{ marginBottom: 24 }}>
+          <Form.List name="work_experiences">
+            {(fields, { add, remove }) => (
+              <>
+                <Table
+                  dataSource={fields}
+                  pagination={false}
+                  rowKey="key"
+                  size="small"
+                  columns={[
+                    { title: '工作单位', dataIndex: 'name', width: 200, render: (name) => <Form.Item name={[name, 'company']} noStyle><Input /></Form.Item> },
+                    { title: '二级工作单位', dataIndex: 'name', width: 150, render: (name) => <Form.Item name={[name, 'department']} noStyle><Input /></Form.Item> },
+                    { title: '职务', dataIndex: 'name', width: 150, render: (name) => <Form.Item name={[name, 'position']} noStyle><Input /></Form.Item> },
+                    { title: '开始时间', dataIndex: 'name', width: 120, render: (name) => <Form.Item name={[name, 'start_time']} noStyle><Input /></Form.Item> },
+                    { title: '结束时间', dataIndex: 'name', width: 120, render: (name) => <Form.Item name={[name, 'end_time']} noStyle><Input /></Form.Item> },
+                    { title: '工作内容', dataIndex: 'name', render: (name) => <Form.Item name={[name, 'description']} noStyle><Input.TextArea rows={1} /></Form.Item> },
+                    { title: '操作', width: 80, render: (_, field) => <Button type="link" danger onClick={() => remove(field.name)}>删除</Button> }
+                  ]}
+                />
+                <Button type="dashed" onClick={() => add()} block style={{ marginTop: 16 }}>+ 添加工作经历</Button>
+              </>
+            )}
+          </Form.List>
+        </Card>
+
+        <Card title="获奖经历" bordered={false} style={{ marginBottom: 24 }}>
+          <Form.List name="awards">
+            {(fields, { add, remove }) => (
+              <>
+                <Table
+                  dataSource={fields}
+                  pagination={false}
+                  rowKey="key"
+                  size="small"
+                  columns={[
+                    { title: '获奖时间', dataIndex: 'name', width: 150, render: (name) => <Form.Item name={[name, 'time']} noStyle><Input /></Form.Item> },
+                    { title: '奖项名称', dataIndex: 'name', render: (name) => <Form.Item name={[name, 'name']} noStyle><Input /></Form.Item> },
+                    { title: '操作', width: 80, render: (_, field) => <Button type="link" danger onClick={() => remove(field.name)}>删除</Button> }
+                  ]}
+                />
+                <Button type="dashed" onClick={() => add()} block style={{ marginTop: 16 }}>+ 添加获奖经历</Button>
+              </>
+            )}
+          </Form.List>
+        </Card>
+
+        <Card title="专利" bordered={false} style={{ marginBottom: 24 }}>
+          <Form.List name="patents">
+            {(fields, { add, remove }) => (
+              <>
+                <Table
+                  dataSource={fields}
+                  pagination={false}
+                  rowKey="key"
+                  size="small"
+                  columns={[
+                    { title: '时间', dataIndex: 'name', width: 150, render: (name) => <Form.Item name={[name, 'time']} noStyle><Input /></Form.Item> },
+                    { title: '专利名称', dataIndex: 'name', width: 300, render: (name) => <Form.Item name={[name, 'name']} noStyle><Input /></Form.Item> },
+                    { title: '发明人角色', dataIndex: 'name', render: (name) => <Form.Item name={[name, 'role']} noStyle><Input /></Form.Item> },
+                    { title: '操作', width: 80, render: (_, field) => <Button type="link" danger onClick={() => remove(field.name)}>删除</Button> }
+                  ]}
+                />
+                <Button type="dashed" onClick={() => add()} block style={{ marginTop: 16 }}>+ 添加专利</Button>
+              </>
+            )}
+          </Form.List>
+        </Card>
+
+        <Card title="论文" bordered={false} style={{ marginBottom: 24 }}>
+          <Form.List name="papers">
+            {(fields, { add, remove }) => (
+              <>
+                <Table
+                  dataSource={fields}
+                  pagination={false}
+                  rowKey="key"
+                  size="small"
+                  columns={[
+                    { title: '发表时间', dataIndex: 'name', width: 150, render: (name) => <Form.Item name={[name, 'time']} noStyle><Input /></Form.Item> },
+                    { title: '论文标题', dataIndex: 'name', width: 400, render: (name) => <Form.Item name={[name, 'title']} noStyle><Input.TextArea rows={1} /></Form.Item> },
+                    { title: '期刊/会议名称', dataIndex: 'name', render: (name) => <Form.Item name={[name, 'journal']} noStyle><Input /></Form.Item> },
+                    { title: '操作', width: 80, render: (_, field) => <Button type="link" danger onClick={() => remove(field.name)}>删除</Button> }
+                  ]}
+                />
+                <Button type="dashed" onClick={() => add()} block style={{ marginTop: 16 }}>+ 添加论文</Button>
+              </>
+            )}
+          </Form.List>
         </Card>
       </Form>
     </div>
   );
 }
+

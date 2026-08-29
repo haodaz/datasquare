@@ -48,18 +48,14 @@ export async function POST(request: Request) {
         profile_link: s.profile_link || '',
         introduction: s.introduction || '',
         research_field: s.research_field || '',
-        bachelor_duration: s.bachelor_duration || '',
-        bachelor_school: s.bachelor_school || '',
-        bachelor_major: s.bachelor_major || '',
-        master_duration: s.master_duration || '',
-        master_school: s.master_school || '',
-        master_major: s.master_major || '',
-        phd_duration: s.phd_duration || '',
-        phd_school: s.phd_school || '',
-        phd_major: s.phd_major || '',
         work_current: s.work_current || '',
-        work_experiences: s.work_experiences || '',
-        award_experiences: s.award_experiences || '',
+        
+        // 子实体映射 (确保是数组)
+        educations: Array.isArray(s.educations) ? s.educations : [],
+        work_experiences: Array.isArray(s.work_experiences) ? s.work_experiences : [],
+        awards: Array.isArray(s.awards) ? s.awards : [],
+        patents: Array.isArray(s.patents) ? s.patents : [],
+        papers: Array.isArray(s.papers) ? s.papers : [],
         
         // 初始状态
         created_at: new Date().toISOString(),
