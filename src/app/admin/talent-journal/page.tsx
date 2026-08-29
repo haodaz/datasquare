@@ -555,6 +555,16 @@ export default function TalentJournalPage() {
             <Button
               type="primary"
               size="small"
+              icon={<DatabaseOutlined />}
+              onClick={handleImportToDb}
+              loading={importing}
+              disabled={selectedRowKeys.length === 0}
+            >
+              导入人才库
+            </Button>
+            <Button
+              type="primary"
+              size="small"
               onClick={() => setMergePreviewOpen(true)}
               disabled={selectedRowKeys.length < 2}
               style={{ background: selectedRowKeys.length >= 2 ? '#10b981' : undefined }}
