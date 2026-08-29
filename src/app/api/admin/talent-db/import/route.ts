@@ -20,14 +20,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: '获取待导入数据失败' }, { status: 500 });
     }
 
-    if (!profiles || profiles.length === 0) {
-      return NextResponse.json({ error: '未找到可导入的数据' }, { status: 404 });
-    }
+    // 2. 提取所有名字，以便去重
+    const namesToMatch = profiles.map(p => p.structured_data?.name).filter(Boolean);
+    const namesEnToMatch = profiles.map(p => p.structured_data?.name_en).filter(Boolean);
+    
+    // 尝试在实体库中查找同名的人才，避免重复创建
+    const { data: existingEntities } = await supabase
+      .from('talent_db_entities')
+      .select('id, name, name_en')
+      .or(`name.in.(${namesToMatch.length > 0 ? `"${namesToMatch.join('","')}"` : '""'}),name_en.in.(${namesEnToMatch.length > 0 ? `"${namesEnToMatch.join('","')}"` : '""'})`);
 
     const toInsert: any[] = [];
     const toUpdate: any[] = [];
 
-    // 2. 将数据组装为实体库格式
+    // 3. 将数据组装为实体库格式并分发为 insert/update
     profiles.forEach(p => {
       const s = p.structured_data || {};
       const entityData = {
@@ -57,8 +63,17 @@ export async function POST(request: Request) {
         updated_at: new Date().toISOString()
       };
 
-      if (p.db_entity_id) {
-        toUpdate.push({ id: p.db_entity_id, ...entityData });
+      // 匹配逻辑：优先使用表关联的 db_entity_id，如果没有，再通过名字去匹配已存在图谱
+      let targetId = p.db_entity_id;
+      if (!targetId && existingEntities) {
+        const matched = existingEntities.find(
+          (e: any) => (e.name && e.name === s.name) || (e.name_en && e.name_en === s.name_en)
+        );
+        if (matched) targetId = matched.id;
+      }
+
+      if (targetId) {
+        toUpdate.push({ id: targetId, ...entityData });
       } else {
         toInsert.push({ ...entityData, created_at: new Date().toISOString() });
       }
